@@ -3,283 +3,267 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>نظام إدارة ديون المقهى</title>
+  <title>نظام إدارة الديون بالأقساط</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet" />
   <style>
     * { font-family: 'Cairo', sans-serif; }
-    .fade-in { animation: fadeIn 0.3s ease-in-out; }
-    @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
-    .badge-unpaid  { background:#fee2e2; color:#dc2626; }
-    .badge-partial { background:#fef9c3; color:#b45309; }
-    .badge-paid    { background:#dcfce7; color:#16a34a; }
-    @media print { .no-print { display:none !important; } }
+    .fade { animation: fadeIn .25s ease; }
+    @keyframes fadeIn { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:translateY(0)} }
+    .pulse-red { animation: pulseRed 1.5s infinite; }
+    @keyframes pulseRed { 0%,100%{background:#fee2e2} 50%{background:#fecaca} }
+    @media print { .no-print{display:none!important} }
   </style>
 </head>
-<body class="bg-gray-50 min-h-screen">
+<body class="bg-slate-50 min-h-screen">
 
-<!-- ========== LOGIN ========== -->
-<div id="loginScreen" class="fixed inset-0 bg-gradient-to-br from-amber-800 to-amber-600 flex items-center justify-center z-50">
-  <div class="bg-white rounded-2xl shadow-2xl p-10 w-full max-w-sm text-center fade-in">
-    <div class="text-5xl mb-3">☕</div>
-    <h1 class="text-2xl font-black text-amber-800 mb-1">إدارة ديون المقهى</h1>
-    <p class="text-gray-400 text-sm mb-6">نظام متابعة مستحقات الموردين</p>
-    <input id="loginPass" type="password" placeholder="كلمة المرور" onkeydown="if(event.key==='Enter')login()"
-      class="w-full border border-gray-200 rounded-xl px-4 py-3 text-center text-lg mb-4 focus:outline-none focus:ring-2 focus:ring-amber-400" />
-    <button onclick="login()" class="w-full bg-amber-700 hover:bg-amber-800 text-white font-bold py-3 rounded-xl transition">دخول</button>
+<!-- LOGIN -->
+<div id="loginScreen" class="fixed inset-0 bg-gradient-to-br from-slate-800 to-slate-600 flex items-center justify-center z-50">
+  <div class="bg-white rounded-2xl shadow-2xl p-10 w-full max-w-sm text-center fade">
+    <div class="text-5xl mb-3">💼</div>
+    <h1 class="text-2xl font-black text-slate-800 mb-1">نظام إدارة الديون</h1>
+    <p class="text-gray-400 text-sm mb-6">متابعة الأقساط والمستحقات</p>
+    <input id="loginPass" type="password" placeholder="كلمة المرور"
+      onkeydown="if(event.key==='Enter')login()"
+      class="w-full border border-gray-200 rounded-xl px-4 py-3 text-center text-lg mb-4 focus:outline-none focus:ring-2 focus:ring-slate-400" />
+    <button onclick="login()" class="w-full bg-slate-700 hover:bg-slate-800 text-white font-bold py-3 rounded-xl transition">دخول</button>
     <p id="loginErr" class="text-red-500 text-sm mt-3 hidden">كلمة المرور غير صحيحة</p>
   </div>
 </div>
 
-<!-- ========== MAIN APP ========== -->
+<!-- APP -->
 <div id="app" class="hidden">
 
-  <!-- Navbar -->
-  <nav class="bg-amber-800 text-white shadow-lg no-print">
-    <div class="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between flex-wrap gap-2">
+  <!-- NAVBAR -->
+  <nav class="bg-slate-800 text-white shadow-lg no-print sticky top-0 z-30">
+    <div class="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between flex-wrap gap-2">
       <div class="flex items-center gap-2">
-        <span class="text-2xl">☕</span>
-        <span class="font-black text-lg">ديون المقهى</span>
+        <span class="text-xl">💼</span>
+        <span class="font-black">إدارة الديون والأقساط</span>
       </div>
-      <div class="flex flex-wrap gap-2 items-center">
-        <button onclick="openTab('dashboard')" id="tab-dashboard" class="nav-btn active-tab px-3 py-1.5 rounded-lg text-sm font-semibold transition">لوحة التحكم</button>
-        <button onclick="openTab('suppliers')" id="tab-suppliers" class="nav-btn px-3 py-1.5 rounded-lg text-sm font-semibold transition">الموردون</button>
-        <button onclick="openTab('purchases')" id="tab-purchases" class="nav-btn px-3 py-1.5 rounded-lg text-sm font-semibold transition">المشتريات</button>
-        <button onclick="openTab('payments')" id="tab-payments" class="nav-btn px-3 py-1.5 rounded-lg text-sm font-semibold transition">المدفوعات</button>
-        <button onclick="logout()" class="bg-amber-900 hover:bg-red-700 px-3 py-1.5 rounded-lg text-sm font-semibold transition">خروج</button>
+      <div class="flex flex-wrap gap-1.5 items-center">
+        <button onclick="openTab('dashboard')" id="tab-dashboard" class="nav-btn active-tab px-3 py-1.5 rounded-lg text-sm font-semibold">الرئيسية</button>
+        <button onclick="openTab('creditors')"  id="tab-creditors"  class="nav-btn px-3 py-1.5 rounded-lg text-sm font-semibold">الدائنون</button>
+        <button onclick="openTab('debts')"      id="tab-debts"      class="nav-btn px-3 py-1.5 rounded-lg text-sm font-semibold">الديون</button>
+        <button onclick="logout()" class="bg-red-700 hover:bg-red-800 px-3 py-1.5 rounded-lg text-sm font-semibold transition">خروج</button>
       </div>
     </div>
   </nav>
-  <style>
-    .nav-btn { color: rgba(255,255,255,0.75); }
-    .nav-btn:hover, .active-tab { color:#fff; background:rgba(255,255,255,0.2); }
-  </style>
+  <style>.nav-btn{color:rgba(255,255,255,.7)}.nav-btn:hover,.active-tab{color:#fff;background:rgba(255,255,255,.15)}</style>
 
-  <div class="max-w-7xl mx-auto px-4 py-6">
+  <!-- ALERT BANNER -->
+  <div id="alertBanner" class="hidden no-print"></div>
 
-    <!-- ===== DASHBOARD TAB ===== -->
-    <div id="tab-content-dashboard" class="fade-in">
-      <h2 class="text-xl font-black text-amber-900 mb-4">لوحة التحكم</h2>
+  <div class="max-w-6xl mx-auto px-4 py-6">
 
-      <!-- KPI Cards -->
+    <!-- ===== DASHBOARD ===== -->
+    <div id="tab-content-dashboard" class="fade">
+
+      <!-- KPIs -->
       <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        <div class="bg-white rounded-2xl shadow p-4 border-r-4 border-amber-500">
-          <p class="text-xs text-gray-400 mb-1">إجمالي المشتريات</p>
-          <p id="kpi-total" class="text-2xl font-black text-amber-700">0</p>
-        </div>
-        <div class="bg-white rounded-2xl shadow p-4 border-r-4 border-red-400">
+        <div class="bg-white rounded-2xl shadow p-4 border-r-4 border-slate-500">
           <p class="text-xs text-gray-400 mb-1">إجمالي الديون</p>
-          <p id="kpi-debt" class="text-2xl font-black text-red-600">0</p>
+          <p id="kpi-total" class="text-2xl font-black text-slate-700">0</p>
         </div>
-        <div class="bg-white rounded-2xl shadow p-4 border-r-4 border-green-400">
+        <div class="bg-white rounded-2xl shadow p-4 border-r-4 border-green-500">
           <p class="text-xs text-gray-400 mb-1">إجمالي المدفوع</p>
           <p id="kpi-paid" class="text-2xl font-black text-green-600">0</p>
         </div>
-        <div class="bg-white rounded-2xl shadow p-4 border-r-4 border-blue-400">
-          <p class="text-xs text-gray-400 mb-1">المتبقي</p>
-          <p id="kpi-remaining" class="text-2xl font-black text-blue-700">0</p>
+        <div class="bg-white rounded-2xl shadow p-4 border-r-4 border-red-400">
+          <p class="text-xs text-gray-400 mb-1">إجمالي المتبقي</p>
+          <p id="kpi-rem" class="text-2xl font-black text-red-600">0</p>
+        </div>
+        <div class="bg-white rounded-2xl shadow p-4 border-r-4 border-amber-400">
+          <p class="text-xs text-gray-400 mb-1">ديون نشطة</p>
+          <p id="kpi-active" class="text-2xl font-black text-amber-600">0</p>
         </div>
       </div>
 
-      <div class="grid lg:grid-cols-2 gap-6">
-        <!-- Chart -->
-        <div class="bg-white rounded-2xl shadow p-5">
-          <h3 class="font-bold text-gray-700 mb-3">توزيع الديون</h3>
-          <div class="flex justify-center"><canvas id="debtChart" width="260" height="260"></canvas></div>
-        </div>
-        <!-- Supplier Debts Summary -->
-        <div class="bg-white rounded-2xl shadow p-5">
-          <h3 class="font-bold text-gray-700 mb-3">ديون الموردين</h3>
-          <div id="supplierSummary" class="space-y-3 max-h-64 overflow-y-auto"></div>
-        </div>
+      <!-- Upcoming Payments -->
+      <div class="bg-white rounded-2xl shadow p-5 mb-5">
+        <h3 class="font-black text-slate-700 mb-3 text-lg">📅 الدفعات القادمة (30 يوم)</h3>
+        <div id="upcomingList"></div>
       </div>
 
-      <!-- Recent Unpaid -->
-      <div class="bg-white rounded-2xl shadow p-5 mt-6">
-        <h3 class="font-bold text-gray-700 mb-3">مشتريات غير مسددة بالكامل</h3>
-        <div id="unpaidList" class="overflow-x-auto"></div>
+      <!-- Overdue -->
+      <div class="bg-white rounded-2xl shadow p-5">
+        <h3 class="font-black text-red-700 mb-3 text-lg">⚠️ دفعات متأخرة</h3>
+        <div id="overdueList"></div>
       </div>
     </div>
 
-    <!-- ===== SUPPLIERS TAB ===== -->
-    <div id="tab-content-suppliers" class="hidden fade-in">
+    <!-- ===== CREDITORS ===== -->
+    <div id="tab-content-creditors" class="hidden fade">
       <div class="flex items-center justify-between mb-4 flex-wrap gap-2">
-        <h2 class="text-xl font-black text-amber-900">الموردون</h2>
-        <button onclick="openModal('modalSupplier')" class="bg-amber-700 hover:bg-amber-800 text-white px-4 py-2 rounded-xl font-bold text-sm transition">+ إضافة مورد</button>
+        <h2 class="text-xl font-black text-slate-800">الدائنون</h2>
+        <button onclick="openModal('modalCreditor')" class="bg-slate-700 hover:bg-slate-800 text-white px-4 py-2 rounded-xl font-bold text-sm">+ إضافة دائن</button>
       </div>
-      <div id="suppliersList" class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+      <div id="creditorsList" class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4"></div>
     </div>
 
-    <!-- ===== PURCHASES TAB ===== -->
-    <div id="tab-content-purchases" class="hidden fade-in">
+    <!-- ===== DEBTS ===== -->
+    <div id="tab-content-debts" class="hidden fade">
       <div class="flex items-center justify-between mb-4 flex-wrap gap-2">
-        <h2 class="text-xl font-black text-amber-900">المشتريات</h2>
-        <div class="flex gap-2 flex-wrap">
-          <select id="filterSupplier" onchange="renderPurchases()" class="border border-gray-200 rounded-xl px-3 py-2 text-sm">
-            <option value="">كل الموردين</option>
-          </select>
-          <select id="filterStatus" onchange="renderPurchases()" class="border border-gray-200 rounded-xl px-3 py-2 text-sm">
-            <option value="">كل الحالات</option>
-            <option value="unpaid">غير مسدد</option>
-            <option value="partial">مسدد جزئياً</option>
-            <option value="paid">مسدد بالكامل</option>
-          </select>
-          <button onclick="openModal('modalPurchase')" class="bg-amber-700 hover:bg-amber-800 text-white px-4 py-2 rounded-xl font-bold text-sm transition">+ إضافة شراء</button>
-        </div>
+        <h2 class="text-xl font-black text-slate-800">الديون</h2>
+        <button onclick="openModal('modalDebt')" class="bg-slate-700 hover:bg-slate-800 text-white px-4 py-2 rounded-xl font-bold text-sm">+ إضافة دين</button>
       </div>
-      <div id="purchasesList" class="overflow-x-auto"></div>
+      <div id="debtsList" class="space-y-4"></div>
     </div>
 
-    <!-- ===== PAYMENTS TAB ===== -->
-    <div id="tab-content-payments" class="hidden fade-in">
-      <div class="flex items-center justify-between mb-4 flex-wrap gap-2">
-        <h2 class="text-xl font-black text-amber-900">سجل المدفوعات</h2>
-        <button onclick="exportPayments()" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-xl font-bold text-sm transition">تصدير Excel</button>
-      </div>
-      <div id="paymentsList" class="overflow-x-auto"></div>
-    </div>
+  </div>
+</div>
 
-  </div><!-- /max-w-7xl -->
-</div><!-- /app -->
+<!-- ===== MODALS ===== -->
 
-<!-- ========== MODALS ========== -->
-
-<!-- Add Supplier Modal -->
-<div id="modalSupplier" class="fixed inset-0 bg-black/50 hidden z-40 flex items-center justify-center p-4">
-  <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md fade-in">
+<!-- Add Creditor -->
+<div id="modalCreditor" class="fixed inset-0 bg-black/50 hidden z-40 flex items-center justify-center p-4">
+  <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md fade">
     <div class="flex items-center justify-between p-5 border-b">
-      <h3 class="font-black text-amber-800">إضافة مورد جديد</h3>
-      <button onclick="closeModal('modalSupplier')" class="text-gray-400 hover:text-gray-600 text-xl">×</button>
+      <h3 class="font-black text-slate-800">إضافة دائن</h3>
+      <button onclick="closeModal('modalCreditor')" class="text-gray-400 hover:text-gray-600 text-2xl leading-none">×</button>
     </div>
     <div class="p-5 space-y-4">
       <div>
-        <label class="text-sm font-semibold text-gray-600">اسم المورد *</label>
-        <input id="sup-name" type="text" class="w-full border border-gray-200 rounded-xl px-4 py-2.5 mt-1 focus:outline-none focus:ring-2 focus:ring-amber-400" placeholder="مثال: مورد القهوة" />
+        <label class="text-sm font-semibold text-gray-600">الاسم *</label>
+        <input id="cr-name" type="text" placeholder="اسم الدائن"
+          class="w-full border border-gray-200 rounded-xl px-4 py-2.5 mt-1 focus:outline-none focus:ring-2 focus:ring-slate-400" />
       </div>
       <div>
         <label class="text-sm font-semibold text-gray-600">رقم الهاتف</label>
-        <input id="sup-phone" type="text" class="w-full border border-gray-200 rounded-xl px-4 py-2.5 mt-1 focus:outline-none focus:ring-2 focus:ring-amber-400" placeholder="05xxxxxxxx" />
-      </div>
-      <div>
-        <label class="text-sm font-semibold text-gray-600">المواد التي يورّدها</label>
-        <input id="sup-goods" type="text" class="w-full border border-gray-200 rounded-xl px-4 py-2.5 mt-1 focus:outline-none focus:ring-2 focus:ring-amber-400" placeholder="مثال: قهوة، سكر، حليب" />
+        <input id="cr-phone" type="text" placeholder="07xxxxxxxxx"
+          class="w-full border border-gray-200 rounded-xl px-4 py-2.5 mt-1 focus:outline-none focus:ring-2 focus:ring-slate-400" />
       </div>
       <div>
         <label class="text-sm font-semibold text-gray-600">ملاحظات</label>
-        <textarea id="sup-notes" rows="2" class="w-full border border-gray-200 rounded-xl px-4 py-2.5 mt-1 focus:outline-none focus:ring-2 focus:ring-amber-400" placeholder="أي ملاحظات إضافية..."></textarea>
+        <textarea id="cr-notes" rows="2" placeholder="اختياري"
+          class="w-full border border-gray-200 rounded-xl px-4 py-2.5 mt-1 focus:outline-none focus:ring-2 focus:ring-slate-400"></textarea>
       </div>
     </div>
     <div class="p-5 border-t flex gap-3">
-      <button onclick="saveSupplier()" class="flex-1 bg-amber-700 hover:bg-amber-800 text-white font-bold py-2.5 rounded-xl transition">حفظ</button>
-      <button onclick="closeModal('modalSupplier')" class="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold py-2.5 rounded-xl transition">إلغاء</button>
+      <button onclick="saveCreditor()" class="flex-1 bg-slate-700 hover:bg-slate-800 text-white font-bold py-2.5 rounded-xl transition">حفظ</button>
+      <button onclick="closeModal('modalCreditor')" class="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold py-2.5 rounded-xl transition">إلغاء</button>
     </div>
   </div>
 </div>
 
-<!-- Add Purchase Modal -->
-<div id="modalPurchase" class="fixed inset-0 bg-black/50 hidden z-40 flex items-center justify-center p-4">
-  <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md fade-in">
+<!-- Add Debt -->
+<div id="modalDebt" class="fixed inset-0 bg-black/50 hidden z-40 flex items-center justify-center p-4">
+  <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg fade">
     <div class="flex items-center justify-between p-5 border-b">
-      <h3 class="font-black text-amber-800">تسجيل شراء جديد</h3>
-      <button onclick="closeModal('modalPurchase')" class="text-gray-400 hover:text-gray-600 text-xl">×</button>
+      <h3 class="font-black text-slate-800">إضافة دين جديد</h3>
+      <button onclick="closeModal('modalDebt')" class="text-gray-400 hover:text-gray-600 text-2xl leading-none">×</button>
     </div>
     <div class="p-5 space-y-4">
       <div>
-        <label class="text-sm font-semibold text-gray-600">المورد *</label>
-        <select id="pur-supplier" class="w-full border border-gray-200 rounded-xl px-4 py-2.5 mt-1 focus:outline-none focus:ring-2 focus:ring-amber-400">
-          <option value="">-- اختر المورد --</option>
+        <label class="text-sm font-semibold text-gray-600">الدائن (صاحب الدين) *</label>
+        <select id="dt-creditor" class="w-full border border-gray-200 rounded-xl px-4 py-2.5 mt-1 focus:outline-none focus:ring-2 focus:ring-slate-400">
+          <option value="">-- اختر الدائن --</option>
         </select>
       </div>
       <div>
-        <label class="text-sm font-semibold text-gray-600">المبلغ الإجمالي *</label>
-        <input id="pur-amount" type="number" min="0" class="w-full border border-gray-200 rounded-xl px-4 py-2.5 mt-1 focus:outline-none focus:ring-2 focus:ring-amber-400" placeholder="0.00" />
+        <label class="text-sm font-semibold text-gray-600">وصف الدين *</label>
+        <input id="dt-desc" type="text" placeholder="مثال: قهوة وبضاعة مقهى"
+          class="w-full border border-gray-200 rounded-xl px-4 py-2.5 mt-1 focus:outline-none focus:ring-2 focus:ring-slate-400" />
       </div>
-      <div>
-        <label class="text-sm font-semibold text-gray-600">المبلغ المدفوع فوراً</label>
-        <input id="pur-paid" type="number" min="0" value="0" class="w-full border border-gray-200 rounded-xl px-4 py-2.5 mt-1 focus:outline-none focus:ring-2 focus:ring-amber-400" placeholder="0.00" />
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="text-sm font-semibold text-gray-600">المبلغ الكلي (دينار) *</label>
+          <input id="dt-total" type="number" min="0" placeholder="14000000"
+            class="w-full border border-gray-200 rounded-xl px-4 py-2.5 mt-1 focus:outline-none focus:ring-2 focus:ring-slate-400" />
+        </div>
+        <div>
+          <label class="text-sm font-semibold text-gray-600">مبلغ الدفعة (دينار) *</label>
+          <input id="dt-inst" type="number" min="0" placeholder="500000"
+            class="w-full border border-gray-200 rounded-xl px-4 py-2.5 mt-1 focus:outline-none focus:ring-2 focus:ring-slate-400" />
+        </div>
       </div>
-      <div>
-        <label class="text-sm font-semibold text-gray-600">تاريخ الشراء *</label>
-        <input id="pur-date" type="date" class="w-full border border-gray-200 rounded-xl px-4 py-2.5 mt-1 focus:outline-none focus:ring-2 focus:ring-amber-400" />
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="text-sm font-semibold text-gray-600">تكرار الدفعة *</label>
+          <select id="dt-freq" class="w-full border border-gray-200 rounded-xl px-4 py-2.5 mt-1 focus:outline-none focus:ring-2 focus:ring-slate-400">
+            <option value="7">أسبوعي (كل 7 أيام)</option>
+            <option value="14">كل أسبوعين</option>
+            <option value="30">شهري</option>
+            <option value="custom">تحديد يدوي</option>
+          </select>
+        </div>
+        <div id="customFreqDiv" class="hidden">
+          <label class="text-sm font-semibold text-gray-600">عدد الأيام</label>
+          <input id="dt-customdays" type="number" min="1" placeholder="10"
+            class="w-full border border-gray-200 rounded-xl px-4 py-2.5 mt-1 focus:outline-none focus:ring-2 focus:ring-slate-400" />
+        </div>
+        <div>
+          <label class="text-sm font-semibold text-gray-600">تاريخ أول دفعة *</label>
+          <input id="dt-start" type="date"
+            class="w-full border border-gray-200 rounded-xl px-4 py-2.5 mt-1 focus:outline-none focus:ring-2 focus:ring-slate-400" />
+        </div>
       </div>
-      <div>
-        <label class="text-sm font-semibold text-gray-600">البضاعة / الوصف *</label>
-        <input id="pur-desc" type="text" class="w-full border border-gray-200 rounded-xl px-4 py-2.5 mt-1 focus:outline-none focus:ring-2 focus:ring-amber-400" placeholder="مثال: 50 كغ قهوة، 20 ل حليب..." />
-      </div>
-      <div>
-        <label class="text-sm font-semibold text-gray-600">ملاحظات</label>
-        <textarea id="pur-notes" rows="2" class="w-full border border-gray-200 rounded-xl px-4 py-2.5 mt-1 focus:outline-none focus:ring-2 focus:ring-amber-400" placeholder="أي ملاحظات..."></textarea>
+      <!-- Preview -->
+      <div id="debtPreview" class="bg-slate-50 rounded-xl p-3 text-sm text-slate-700 hidden">
+        <p id="previewText"></p>
       </div>
     </div>
     <div class="p-5 border-t flex gap-3">
-      <button onclick="savePurchase()" class="flex-1 bg-amber-700 hover:bg-amber-800 text-white font-bold py-2.5 rounded-xl transition">حفظ</button>
-      <button onclick="closeModal('modalPurchase')" class="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold py-2.5 rounded-xl transition">إلغاء</button>
+      <button onclick="saveDebt()" class="flex-1 bg-slate-700 hover:bg-slate-800 text-white font-bold py-2.5 rounded-xl transition">حفظ</button>
+      <button onclick="closeModal('modalDebt')" class="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold py-2.5 rounded-xl transition">إلغاء</button>
     </div>
   </div>
 </div>
 
 <!-- Pay Modal -->
 <div id="modalPay" class="fixed inset-0 bg-black/50 hidden z-40 flex items-center justify-center p-4">
-  <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md fade-in">
+  <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md fade">
     <div class="flex items-center justify-between p-5 border-b">
-      <h3 class="font-black text-amber-800">تسجيل دفعة</h3>
-      <button onclick="closeModal('modalPay')" class="text-gray-400 hover:text-gray-600 text-xl">×</button>
+      <h3 class="font-black text-slate-800">تسجيل دفعة</h3>
+      <button onclick="closeModal('modalPay')" class="text-gray-400 hover:text-gray-600 text-2xl leading-none">×</button>
     </div>
     <div class="p-5 space-y-4">
-      <div id="payInfo" class="bg-amber-50 rounded-xl p-3 text-sm text-amber-800"></div>
-      <input type="hidden" id="pay-purchaseId" />
+      <div id="payInfo" class="bg-slate-50 rounded-xl p-3 text-sm text-slate-700"></div>
+      <input type="hidden" id="pay-debtId" />
+      <input type="hidden" id="pay-instIdx" />
       <div>
         <label class="text-sm font-semibold text-gray-600">المبلغ المدفوع *</label>
-        <input id="pay-amount" type="number" min="0" class="w-full border border-gray-200 rounded-xl px-4 py-2.5 mt-1 focus:outline-none focus:ring-2 focus:ring-amber-400" placeholder="0.00" />
+        <input id="pay-amount" type="number" min="0"
+          class="w-full border border-gray-200 rounded-xl px-4 py-2.5 mt-1 focus:outline-none focus:ring-2 focus:ring-slate-400" />
       </div>
       <div>
         <label class="text-sm font-semibold text-gray-600">تاريخ الدفع *</label>
-        <input id="pay-date" type="date" class="w-full border border-gray-200 rounded-xl px-4 py-2.5 mt-1 focus:outline-none focus:ring-2 focus:ring-amber-400" />
+        <input id="pay-date" type="date"
+          class="w-full border border-gray-200 rounded-xl px-4 py-2.5 mt-1 focus:outline-none focus:ring-2 focus:ring-slate-400" />
       </div>
       <div>
         <label class="text-sm font-semibold text-gray-600">ملاحظة</label>
-        <input id="pay-note" type="text" class="w-full border border-gray-200 rounded-xl px-4 py-2.5 mt-1 focus:outline-none focus:ring-2 focus:ring-amber-400" placeholder="اختياري..." />
+        <input id="pay-note" type="text" placeholder="اختياري"
+          class="w-full border border-gray-200 rounded-xl px-4 py-2.5 mt-1 focus:outline-none focus:ring-2 focus:ring-slate-400" />
       </div>
     </div>
     <div class="p-5 border-t flex gap-3">
-      <button onclick="savePayment()" class="flex-1 bg-green-600 hover:bg-green-700 text-white font-bold py-2.5 rounded-xl transition">تأكيد الدفع</button>
+      <button onclick="savePayment()" class="flex-1 bg-green-600 hover:bg-green-700 text-white font-bold py-2.5 rounded-xl transition">✓ تأكيد الدفع</button>
       <button onclick="closeModal('modalPay')" class="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold py-2.5 rounded-xl transition">إلغاء</button>
     </div>
   </div>
 </div>
 
-<!-- Purchase Detail Modal -->
+<!-- Debt Detail Modal -->
 <div id="modalDetail" class="fixed inset-0 bg-black/50 hidden z-40 flex items-center justify-center p-4">
-  <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg fade-in">
-    <div class="flex items-center justify-between p-5 border-b">
-      <h3 class="font-black text-amber-800">تفاصيل الشراء</h3>
+  <div class="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto fade">
+    <div class="flex items-center justify-between p-5 border-b no-print">
+      <h3 id="detailTitle" class="font-black text-slate-800 text-lg">تفاصيل الدين</h3>
       <div class="flex gap-2">
-        <button onclick="printDetail()" class="text-sm bg-amber-100 hover:bg-amber-200 text-amber-800 px-3 py-1 rounded-lg transition">طباعة</button>
-        <button onclick="closeModal('modalDetail')" class="text-gray-400 hover:text-gray-600 text-xl">×</button>
+        <button onclick="printDetail()" class="text-sm bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-1.5 rounded-lg font-bold transition">🖨 طباعة</button>
+        <button onclick="closeModal('modalDetail')" class="text-gray-400 hover:text-gray-600 text-2xl leading-none">×</button>
       </div>
     </div>
     <div id="detailContent" class="p-5"></div>
   </div>
 </div>
 
-<!-- Supplier Detail Modal -->
-<div id="modalSupplierDetail" class="fixed inset-0 bg-black/50 hidden z-40 flex items-center justify-center p-4">
-  <div class="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto fade-in">
-    <div class="flex items-center justify-between p-5 border-b">
-      <h3 id="supplierDetailTitle" class="font-black text-amber-800">تفاصيل المورد</h3>
-      <button onclick="closeModal('modalSupplierDetail')" class="text-gray-400 hover:text-gray-600 text-xl">×</button>
-    </div>
-    <div id="supplierDetailContent" class="p-5"></div>
-  </div>
-</div>
-
-<!-- Delete Confirm Modal -->
+<!-- Confirm Delete -->
 <div id="modalConfirm" class="fixed inset-0 bg-black/50 hidden z-50 flex items-center justify-center p-4">
-  <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm fade-in text-center p-6">
+  <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm text-center p-6 fade">
     <div class="text-4xl mb-3">⚠️</div>
     <h3 class="font-black text-gray-800 mb-2">تأكيد الحذف</h3>
-    <p id="confirmMsg" class="text-gray-500 text-sm mb-5">هل أنت متأكد؟</p>
+    <p id="confirmMsg" class="text-gray-500 text-sm mb-5"></p>
     <div class="flex gap-3">
       <button id="confirmYes" class="flex-1 bg-red-600 hover:bg-red-700 text-white font-bold py-2.5 rounded-xl transition">حذف</button>
       <button onclick="closeModal('modalConfirm')" class="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold py-2.5 rounded-xl transition">إلغاء</button>
@@ -287,52 +271,48 @@
   </div>
 </div>
 
+<!-- ===== JAVASCRIPT ===== -->
 <script>
-// ===================== DATA LAYER =====================
+// ---------- STORAGE ----------
 const DB = {
-  load(key, def=[]) { try { return JSON.parse(localStorage.getItem(key)) || def; } catch { return def; } },
-  save(key, val)    { localStorage.setItem(key, JSON.stringify(val)); }
+  load: (k,d=[]) => { try{ return JSON.parse(localStorage.getItem(k))||d }catch{ return d } },
+  save: (k,v) => localStorage.setItem(k, JSON.stringify(v))
 };
+let creditors = DB.load('dms_creditors');
+let debts     = DB.load('dms_debts');
+let payments  = DB.load('dms_payments');
+const save = () => { DB.save('dms_creditors',creditors); DB.save('dms_debts',debts); DB.save('dms_payments',payments); };
+const uid  = () => Date.now().toString(36)+Math.random().toString(36).slice(2,5);
 
-let suppliers = DB.load('cafe_suppliers');
-let purchases = DB.load('cafe_purchases');
-let payments  = DB.load('cafe_payments');
-
-function persist() {
-  DB.save('cafe_suppliers', suppliers);
-  DB.save('cafe_purchases', purchases);
-  DB.save('cafe_payments',  payments);
-}
-
-function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2,6); }
-
-// ===================== AUTH =====================
+// ---------- AUTH ----------
 function login() {
-  const p = document.getElementById('loginPass').value;
-  if (p === 'admin') {
-    sessionStorage.setItem('cafe_auth','1');
+  if (document.getElementById('loginPass').value === 'admin') {
+    sessionStorage.setItem('dms_auth','1');
     document.getElementById('loginScreen').classList.add('hidden');
     document.getElementById('app').classList.remove('hidden');
-    openTab('dashboard');
+    initApp();
   } else {
     document.getElementById('loginErr').classList.remove('hidden');
-    document.getElementById('loginPass').value = '';
+    document.getElementById('loginPass').value='';
   }
 }
-function logout() {
-  sessionStorage.removeItem('cafe_auth');
-  location.reload();
-}
+function logout() { sessionStorage.removeItem('dms_auth'); location.reload(); }
 window.onload = () => {
-  if (sessionStorage.getItem('cafe_auth') === '1') {
+  if (sessionStorage.getItem('dms_auth')==='1') {
     document.getElementById('loginScreen').classList.add('hidden');
     document.getElementById('app').classList.remove('hidden');
-    openTab('dashboard');
+    initApp();
   }
+  document.getElementById('dt-freq').addEventListener('change', e => {
+    document.getElementById('customFreqDiv').classList.toggle('hidden', e.target.value!=='custom');
+    updatePreview();
+  });
+  ['dt-total','dt-inst','dt-start','dt-customdays'].forEach(id =>
+    document.getElementById(id).addEventListener('input', updatePreview));
 };
 
-// ===================== TABS =====================
-const TABS = ['dashboard','suppliers','purchases','payments'];
+// ---------- TABS ----------
+const TABS = ['dashboard','creditors','debts'];
 function openTab(t) {
   TABS.forEach(id => {
     document.getElementById('tab-content-'+id).classList.add('hidden');
@@ -340,438 +320,520 @@ function openTab(t) {
   });
   document.getElementById('tab-content-'+t).classList.remove('hidden');
   document.getElementById('tab-'+t).classList.add('active-tab');
-  if (t==='dashboard') renderDashboard();
-  if (t==='suppliers') renderSuppliers();
-  if (t==='purchases') renderPurchases();
-  if (t==='payments')  renderPayments();
+  if(t==='dashboard') renderDashboard();
+  if(t==='creditors') renderCreditors();
+  if(t==='debts')     renderDebts();
 }
 
-// ===================== MODALS =====================
+// ---------- MODALS ----------
 function openModal(id) { document.getElementById(id).classList.remove('hidden'); }
 function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
 
-// ===================== HELPERS =====================
-function fmt(n) { return Number(n||0).toLocaleString('ar-SA', {minimumFractionDigits:2, maximumFractionDigits:2}); }
-function fmtDate(d) { if(!d) return '-'; const dt=new Date(d); return dt.toLocaleDateString('ar-SA'); }
-function supplierName(id) { const s=suppliers.find(x=>x.id===id); return s?s.name:'—'; }
-function purchaseRemaining(p) {
-  const paid = payments.filter(x=>x.purchaseId===p.id).reduce((s,x)=>s+Number(x.amount),0);
-  return Math.max(0, Number(p.amount) - Number(p.initialPaid||0) - paid);
-}
-function purchasePaidTotal(p) {
-  const paid = payments.filter(x=>x.purchaseId===p.id).reduce((s,x)=>s+Number(x.amount),0);
-  return Number(p.initialPaid||0) + paid;
-}
-function purchaseStatus(p) {
-  const rem = purchaseRemaining(p);
-  if (rem <= 0) return 'paid';
-  if (purchasePaidTotal(p) > 0) return 'partial';
-  return 'unpaid';
-}
-function statusBadge(s) {
-  const map = { paid:'مسدد', partial:'جزئي', unpaid:'غير مسدد' };
-  return `<span class="badge-${s} px-2 py-0.5 rounded-full text-xs font-bold">${map[s]}</span>`;
-}
+// ---------- HELPERS ----------
+const fmt     = n => Number(n||0).toLocaleString('ar-IQ');
+const fmtDate = d => d ? new Date(d+'T00:00:00').toLocaleDateString('ar-IQ',{year:'numeric',month:'long',day:'numeric'}) : '—';
+const today   = () => new Date().toISOString().split('T')[0];
+const daysDiff= d => Math.round((new Date(d+'T00:00:00')-new Date(today()+'T00:00:00'))/(864e5));
+const creditorName = id => { const c=creditors.find(x=>x.id===id); return c?c.name:'—'; };
 
-// ===================== DASHBOARD =====================
-let debtChartInst = null;
-function renderDashboard() {
-  const totalPurchases = purchases.reduce((s,p)=>s+Number(p.amount),0);
-  const totalPaid = purchases.reduce((s,p)=>s+purchasePaidTotal(p),0);
-  const totalRemaining = purchases.reduce((s,p)=>s+purchaseRemaining(p),0);
-
-  document.getElementById('kpi-total').textContent     = fmt(totalPurchases);
-  document.getElementById('kpi-debt').textContent      = fmt(totalRemaining);
-  document.getElementById('kpi-paid').textContent      = fmt(totalPaid);
-  document.getElementById('kpi-remaining').textContent = fmt(totalRemaining);
-
-  // Chart
-  const ctx = document.getElementById('debtChart').getContext('2d');
-  if (debtChartInst) debtChartInst.destroy();
-  debtChartInst = new Chart(ctx, {
-    type: 'doughnut',
-    data: {
-      labels: ['مدفوع','متبقي'],
-      datasets:[{ data:[totalPaid, totalRemaining],
-        backgroundColor:['#16a34a','#dc2626'], borderWidth:0 }]
-    },
-    options:{ plugins:{ legend:{ position:'bottom' } }, cutout:'65%' }
-  });
-
-  // Supplier summary
-  const sDiv = document.getElementById('supplierSummary');
-  if (!suppliers.length) { sDiv.innerHTML='<p class="text-gray-400 text-sm text-center py-4">لا يوجد موردون بعد</p>'; return; }
-  sDiv.innerHTML = suppliers.map(sup => {
-    const supPurchases = purchases.filter(p=>p.supplierId===sup.id);
-    const total = supPurchases.reduce((s,p)=>s+Number(p.amount),0);
-    const rem   = supPurchases.reduce((s,p)=>s+purchaseRemaining(p),0);
-    const pct   = total>0 ? Math.round(((total-rem)/total)*100) : 100;
-    return `<div class="flex items-center gap-3">
-      <div class="flex-1">
-        <div class="flex justify-between text-sm mb-1">
-          <span class="font-semibold text-gray-700">${sup.name}</span>
-          <span class="text-red-600 font-bold">${fmt(rem)}</span>
-        </div>
-        <div class="bg-gray-100 rounded-full h-2">
-          <div class="bg-amber-500 h-2 rounded-full" style="width:${pct}%"></div>
-        </div>
-      </div>
-    </div>`;
-  }).join('');
-
-  // Unpaid list
-  const unpaid = purchases.filter(p=>purchaseStatus(p)!=='paid')
-    .sort((a,b)=>new Date(a.date)-new Date(b.date));
-  const uDiv = document.getElementById('unpaidList');
-  if (!unpaid.length) { uDiv.innerHTML='<p class="text-gray-400 text-sm text-center py-4">لا توجد ديون معلقة 🎉</p>'; return; }
-  uDiv.innerHTML = `<table class="w-full text-sm">
-    <thead><tr class="bg-gray-50 text-gray-500">
-      <th class="px-3 py-2 text-right font-semibold">المورد</th>
-      <th class="px-3 py-2 text-right font-semibold">الوصف</th>
-      <th class="px-3 py-2 text-right font-semibold">التاريخ</th>
-      <th class="px-3 py-2 text-right font-semibold">المبلغ</th>
-      <th class="px-3 py-2 text-right font-semibold">المتبقي</th>
-      <th class="px-3 py-2 text-right font-semibold">الحالة</th>
-    </tr></thead><tbody>
-    ${unpaid.map(p=>`<tr class="border-t hover:bg-amber-50">
-      <td class="px-3 py-2 font-semibold">${supplierName(p.supplierId)}</td>
-      <td class="px-3 py-2 text-gray-600">${p.desc}</td>
-      <td class="px-3 py-2 text-gray-500">${fmtDate(p.date)}</td>
-      <td class="px-3 py-2 font-bold">${fmt(p.amount)}</td>
-      <td class="px-3 py-2 font-bold text-red-600">${fmt(purchaseRemaining(p))}</td>
-      <td class="px-3 py-2">${statusBadge(purchaseStatus(p))}</td>
-    </tr>`).join('')}
-    </tbody></table>`;
-}
-
-// ===================== SUPPLIERS =====================
-function renderSuppliers() {
-  const div = document.getElementById('suppliersList');
-  if (!suppliers.length) {
-    div.innerHTML = '<div class="col-span-3 text-center py-12 text-gray-400"><div class="text-5xl mb-3">🏪</div><p>لا يوجد موردون بعد</p><p class="text-sm mt-1">أضف أول مورد من الزر أعلاه</p></div>';
-    return;
+// ---------- SCHEDULE GENERATION ----------
+function buildSchedule(debt) {
+  const freq = debt.freq==='custom' ? Number(debt.customDays) : Number(debt.freq);
+  const total = Number(debt.totalAmount);
+  const inst  = Number(debt.instAmount);
+  const start = new Date(debt.startDate+'T00:00:00');
+  const schedule = [];
+  let remaining = total;
+  let i = 0;
+  while (remaining > 0.009) {
+    const amount = Math.min(remaining, inst);
+    const due = new Date(start);
+    due.setDate(due.getDate() + i * freq);
+    schedule.push({ idx: i, amount, dueDate: due.toISOString().split('T')[0] });
+    remaining -= amount;
+    i++;
   }
-  div.innerHTML = suppliers.map(sup => {
-    const supPurchases = purchases.filter(p=>p.supplierId===sup.id);
-    const total = supPurchases.reduce((s,p)=>s+Number(p.amount),0);
-    const rem   = supPurchases.reduce((s,p)=>s+purchaseRemaining(p),0);
-    return `<div class="bg-white rounded-2xl shadow p-5 hover:shadow-md transition">
-      <div class="flex items-start justify-between mb-3">
-        <div>
-          <h3 class="font-black text-gray-800">${sup.name}</h3>
-          ${sup.phone?`<p class="text-sm text-gray-400">${sup.phone}</p>`:''}
-          ${sup.goods?`<p class="text-xs text-amber-700 mt-1 bg-amber-50 rounded-lg px-2 py-0.5 inline-block">${sup.goods}</p>`:''}
-        </div>
-        <button onclick="confirmDelete('supplier','${sup.id}')" class="text-red-300 hover:text-red-500 transition text-lg">🗑</button>
-      </div>
-      <div class="flex gap-3 text-center border-t pt-3 mt-3">
-        <div class="flex-1"><p class="text-xs text-gray-400">إجمالي</p><p class="font-bold text-gray-700">${fmt(total)}</p></div>
-        <div class="flex-1"><p class="text-xs text-gray-400">متبقي</p><p class="font-bold text-red-600">${fmt(rem)}</p></div>
-        <div class="flex-1"><p class="text-xs text-gray-400">مشتريات</p><p class="font-bold text-gray-700">${supPurchases.length}</p></div>
-      </div>
-      <button onclick="openSupplierDetail('${sup.id}')" class="w-full mt-3 bg-amber-50 hover:bg-amber-100 text-amber-800 text-sm font-bold py-2 rounded-xl transition">عرض التفاصيل</button>
-    </div>`;
-  }).join('');
+  return schedule;
 }
 
-function saveSupplier() {
-  const name = document.getElementById('sup-name').value.trim();
-  if (!name) return alert('الرجاء إدخال اسم المورد');
-  suppliers.push({
-    id: uid(),
-    name,
-    phone: document.getElementById('sup-phone').value.trim(),
-    goods: document.getElementById('sup-goods').value.trim(),
-    notes: document.getElementById('sup-notes').value.trim()
+function getInstPayment(debtId, idx) {
+  return payments.filter(p=>p.debtId===debtId && p.instIdx===idx);
+}
+function isInstPaid(debtId, idx) {
+  return getInstPayment(debtId, idx).length > 0;
+}
+function totalPaid(debtId) {
+  return payments.filter(p=>p.debtId===debtId).reduce((s,p)=>s+Number(p.amount),0);
+}
+function instStatus(debtId, inst) {
+  if (isInstPaid(debtId, inst.idx)) return 'paid';
+  const d = daysDiff(inst.dueDate);
+  if (d < 0) return 'overdue';
+  if (d <= 7) return 'soon';
+  return 'upcoming';
+}
+
+// ---------- ALERTS ----------
+function buildAlerts() {
+  const alerts = [];
+  debts.forEach(debt => {
+    const sched = buildSchedule(debt);
+    sched.forEach(inst => {
+      const st = instStatus(debt.id, inst);
+      if (st==='overdue' || st==='soon') {
+        alerts.push({ debt, inst, st, days: daysDiff(inst.dueDate) });
+      }
+    });
   });
-  persist();
-  closeModal('modalSupplier');
-  ['sup-name','sup-phone','sup-goods','sup-notes'].forEach(id=>document.getElementById(id).value='');
-  refreshSupplierSelects();
-  renderSuppliers();
+  return alerts.sort((a,b)=>a.days-b.days);
 }
 
-function openSupplierDetail(supId) {
-  const sup = suppliers.find(s=>s.id===supId);
-  if(!sup) return;
-  document.getElementById('supplierDetailTitle').textContent = `تفاصيل: ${sup.name}`;
-  const supPurchases = purchases.filter(p=>p.supplierId===supId);
-  const total = supPurchases.reduce((s,p)=>s+Number(p.amount),0);
-  const rem   = supPurchases.reduce((s,p)=>s+purchaseRemaining(p),0);
-  const paid  = total - rem;
-  let html = `
-    <div class="grid grid-cols-3 gap-3 mb-5">
-      <div class="bg-amber-50 rounded-xl p-3 text-center"><p class="text-xs text-gray-400">إجمالي</p><p class="font-black text-amber-700">${fmt(total)}</p></div>
-      <div class="bg-green-50 rounded-xl p-3 text-center"><p class="text-xs text-gray-400">مدفوع</p><p class="font-black text-green-700">${fmt(paid)}</p></div>
-      <div class="bg-red-50 rounded-xl p-3 text-center"><p class="text-xs text-gray-400">متبقي</p><p class="font-black text-red-700">${fmt(rem)}</p></div>
-    </div>
-    <h4 class="font-bold text-gray-700 mb-2">المشتريات (${supPurchases.length})</h4>`;
-  if (!supPurchases.length) {
-    html += '<p class="text-gray-400 text-sm text-center py-4">لا توجد مشتريات بعد</p>';
-  } else {
-    html += `<div class="space-y-2">` + supPurchases.map(p => {
-      const pr = purchaseRemaining(p);
-      const st = purchaseStatus(p);
-      return `<div class="border rounded-xl p-3 flex items-center justify-between gap-2">
-        <div class="flex-1 min-w-0">
-          <p class="font-semibold text-sm truncate">${p.desc}</p>
-          <p class="text-xs text-gray-400">${fmtDate(p.date)} — إجمالي: ${fmt(p.amount)} — متبقي: <span class="text-red-600 font-bold">${fmt(pr)}</span></p>
-        </div>
-        <div class="flex items-center gap-2 shrink-0">
-          ${statusBadge(st)}
-          ${st!=='paid'?`<button onclick="openPayModal('${p.id}')" class="text-xs bg-green-100 hover:bg-green-200 text-green-700 px-2 py-1 rounded-lg font-bold transition">دفع</button>`:''}
-        </div>
+function renderAlerts() {
+  const alerts = buildAlerts();
+  const banner = document.getElementById('alertBanner');
+  if (!alerts.length) { banner.classList.add('hidden'); return; }
+  banner.classList.remove('hidden');
+  banner.className = 'no-print px-4 py-3 ' + (alerts.some(a=>a.st==='overdue') ? 'pulse-red' : 'bg-amber-100');
+  banner.innerHTML = `<div class="max-w-6xl mx-auto space-y-1">
+    ${alerts.map(a => {
+      const dLabel = a.days<0 ? `متأخرة ${Math.abs(a.days)} يوم` : a.days===0 ? 'اليوم!' : `بعد ${a.days} يوم`;
+      const color  = a.st==='overdue' ? 'text-red-800 font-black' : 'text-amber-800 font-bold';
+      return `<div class="flex items-center justify-between gap-3 text-sm flex-wrap">
+        <span class="${color}">
+          ${a.st==='overdue'?'🚨':'⏰'} دفعة لـ <b>${creditorName(a.debt.creditorId)}</b>
+          — ${a.debt.desc} — مبلغ: <b>${fmt(a.inst.amount)} د.ع</b> — ${dLabel}
+        </span>
+        <button onclick="openPayModal('${a.debt.id}',${a.inst.idx})"
+          class="bg-white border border-current px-3 py-1 rounded-lg text-xs font-bold hover:bg-gray-50 transition shrink-0">
+          تسديد الآن
+        </button>
       </div>`;
-    }).join('') + '</div>';
+    }).join('<hr class="border-current opacity-20 my-0.5">')}
+  </div>`;
+}
+
+// ---------- INIT ----------
+function initApp() {
+  refreshCreditorSelect();
+  renderAlerts();
+  openTab('dashboard');
+}
+
+// ---------- DASHBOARD ----------
+function renderDashboard() {
+  renderAlerts();
+  const totalDebt = debts.reduce((s,d)=>s+Number(d.totalAmount),0);
+  const totalPaidAll = debts.reduce((s,d)=>s+totalPaid(d.id),0);
+  const totalRem  = totalDebt - totalPaidAll;
+  const activeCount = debts.filter(d=>totalPaid(d.id)<Number(d.totalAmount)).length;
+
+  document.getElementById('kpi-total').textContent  = fmt(totalDebt);
+  document.getElementById('kpi-paid').textContent   = fmt(totalPaidAll);
+  document.getElementById('kpi-rem').textContent    = fmt(totalRem);
+  document.getElementById('kpi-active').textContent = activeCount;
+
+  // Upcoming (next 30 days, not paid)
+  const upcoming = [];
+  const overdue  = [];
+  debts.forEach(debt => {
+    buildSchedule(debt).forEach(inst => {
+      const st = instStatus(debt.id, inst);
+      const d  = daysDiff(inst.dueDate);
+      if (st==='soon' || (st==='upcoming' && d<=30)) upcoming.push({debt,inst,d});
+      if (st==='overdue') overdue.push({debt,inst,d});
+    });
+  });
+  upcoming.sort((a,b)=>a.d-b.d);
+  overdue.sort((a,b)=>a.d-b.d);
+
+  const upDiv = document.getElementById('upcomingList');
+  if (!upcoming.length) {
+    upDiv.innerHTML='<p class="text-gray-400 text-sm text-center py-4">لا توجد دفعات قادمة خلال 30 يوم 🎉</p>';
+  } else {
+    upDiv.innerHTML=`<div class="overflow-x-auto"><table class="w-full text-sm">
+      <thead><tr class="bg-gray-50 text-gray-500">
+        <th class="px-3 py-2 text-right font-semibold">الدائن</th>
+        <th class="px-3 py-2 text-right font-semibold">الدين</th>
+        <th class="px-3 py-2 text-right font-semibold">موعد الدفعة</th>
+        <th class="px-3 py-2 text-right font-semibold">المبلغ</th>
+        <th class="px-3 py-2 text-right font-semibold">الحالة</th>
+        <th class="px-3 py-2"></th>
+      </tr></thead><tbody>
+      ${upcoming.map(({debt,inst,d})=>`<tr class="border-t hover:bg-amber-50">
+        <td class="px-3 py-2 font-semibold">${creditorName(debt.creditorId)}</td>
+        <td class="px-3 py-2 text-gray-500">${debt.desc}</td>
+        <td class="px-3 py-2">${fmtDate(inst.dueDate)}</td>
+        <td class="px-3 py-2 font-bold">${fmt(inst.amount)} د.ع</td>
+        <td class="px-3 py-2">${d===0?'<span class="bg-orange-100 text-orange-700 text-xs px-2 py-0.5 rounded-full font-bold">اليوم!</span>':d<=7?`<span class="bg-amber-100 text-amber-700 text-xs px-2 py-0.5 rounded-full font-bold">بعد ${d} يوم</span>`:`<span class="bg-blue-50 text-blue-700 text-xs px-2 py-0.5 rounded-full">بعد ${d} يوم</span>`}</td>
+        <td class="px-3 py-2"><button onclick="openPayModal('${debt.id}',${inst.idx})" class="text-xs bg-green-100 hover:bg-green-200 text-green-700 px-2 py-1 rounded-lg font-bold transition">تسديد</button></td>
+      </tr>`).join('')}
+      </tbody></table></div>`;
   }
-  document.getElementById('supplierDetailContent').innerHTML = html;
-  openModal('modalSupplierDetail');
+
+  const ovDiv = document.getElementById('overdueList');
+  if (!overdue.length) {
+    ovDiv.innerHTML='<p class="text-gray-400 text-sm text-center py-4">لا توجد دفعات متأخرة ✅</p>';
+  } else {
+    ovDiv.innerHTML=`<div class="overflow-x-auto"><table class="w-full text-sm">
+      <thead><tr class="bg-red-50 text-gray-500">
+        <th class="px-3 py-2 text-right font-semibold">الدائن</th>
+        <th class="px-3 py-2 text-right font-semibold">الدين</th>
+        <th class="px-3 py-2 text-right font-semibold">كان موعدها</th>
+        <th class="px-3 py-2 text-right font-semibold">المبلغ</th>
+        <th class="px-3 py-2 text-right font-semibold">تأخير</th>
+        <th class="px-3 py-2"></th>
+      </tr></thead><tbody>
+      ${overdue.map(({debt,inst,d})=>`<tr class="border-t hover:bg-red-50">
+        <td class="px-3 py-2 font-semibold">${creditorName(debt.creditorId)}</td>
+        <td class="px-3 py-2 text-gray-500">${debt.desc}</td>
+        <td class="px-3 py-2 text-red-700">${fmtDate(inst.dueDate)}</td>
+        <td class="px-3 py-2 font-bold">${fmt(inst.amount)} د.ع</td>
+        <td class="px-3 py-2"><span class="bg-red-100 text-red-700 text-xs px-2 py-0.5 rounded-full font-black">${Math.abs(d)} يوم</span></td>
+        <td class="px-3 py-2"><button onclick="openPayModal('${debt.id}',${inst.idx})" class="text-xs bg-red-100 hover:bg-red-200 text-red-700 px-2 py-1 rounded-lg font-bold transition">تسديد</button></td>
+      </tr>`).join('')}
+      </tbody></table></div>`;
+  }
 }
 
-// ===================== PURCHASES =====================
-function refreshSupplierSelects() {
-  ['pur-supplier','filterSupplier'].forEach(id => {
-    const sel = document.getElementById(id);
-    if (!sel) return;
-    const val = sel.value;
-    const opts = id==='filterSupplier' ? '<option value="">كل الموردين</option>' : '<option value="">-- اختر المورد --</option>';
-    sel.innerHTML = opts + suppliers.map(s=>`<option value="${s.id}">${s.name}</option>`).join('');
-    sel.value = val;
-  });
+// ---------- CREDITORS ----------
+function refreshCreditorSelect() {
+  const sel = document.getElementById('dt-creditor');
+  const val = sel.value;
+  sel.innerHTML = '<option value="">-- اختر الدائن --</option>' +
+    creditors.map(c=>`<option value="${c.id}">${c.name}</option>`).join('');
+  sel.value = val;
 }
 
-function savePurchase() {
-  const supId  = document.getElementById('pur-supplier').value;
-  const amount = parseFloat(document.getElementById('pur-amount').value);
-  const initPaid = parseFloat(document.getElementById('pur-paid').value||0);
-  const date   = document.getElementById('pur-date').value;
-  const desc   = document.getElementById('pur-desc').value.trim();
-  if (!supId)        return alert('الرجاء اختيار المورد');
-  if (!amount||amount<=0) return alert('الرجاء إدخال مبلغ صحيح');
-  if (initPaid>amount)   return alert('المبلغ المدفوع أكبر من المبلغ الإجمالي!');
-  if (!date)         return alert('الرجاء اختيار تاريخ الشراء');
-  if (!desc)         return alert('الرجاء إدخال وصف البضاعة');
-  purchases.push({
-    id: uid(), supplierId: supId, amount, initialPaid: initPaid||0,
-    date, desc, notes: document.getElementById('pur-notes').value.trim()
-  });
-  persist();
-  closeModal('modalPurchase');
-  ['pur-supplier','pur-amount','pur-date','pur-desc','pur-notes'].forEach(id=>document.getElementById(id).value='');
-  document.getElementById('pur-paid').value='0';
-  renderPurchases();
+function saveCreditor() {
+  const name = document.getElementById('cr-name').value.trim();
+  if(!name) return alert('الرجاء إدخال الاسم');
+  creditors.push({ id:uid(), name, phone:document.getElementById('cr-phone').value.trim(), notes:document.getElementById('cr-notes').value.trim() });
+  save();
+  closeModal('modalCreditor');
+  ['cr-name','cr-phone','cr-notes'].forEach(id=>document.getElementById(id).value='');
+  refreshCreditorSelect();
+  renderCreditors();
 }
 
-function renderPurchases() {
-  const filterSup = document.getElementById('filterSupplier').value;
-  const filterSt  = document.getElementById('filterStatus').value;
-  refreshSupplierSelects();
-
-  let list = purchases.slice().sort((a,b)=>new Date(b.date)-new Date(a.date));
-  if (filterSup) list = list.filter(p=>p.supplierId===filterSup);
-  if (filterSt)  list = list.filter(p=>purchaseStatus(p)===filterSt);
-
-  const div = document.getElementById('purchasesList');
-  if (!list.length) {
-    div.innerHTML = '<div class="text-center py-12 text-gray-400"><div class="text-5xl mb-3">🛒</div><p>لا توجد مشتريات</p></div>';
+function renderCreditors() {
+  const div = document.getElementById('creditorsList');
+  if(!creditors.length) {
+    div.innerHTML='<div class="col-span-3 text-center py-12 text-gray-400"><div class="text-5xl mb-3">👤</div><p>لا يوجد دائنون بعد</p></div>';
     return;
   }
-  div.innerHTML = `<table class="w-full text-sm bg-white rounded-2xl shadow overflow-hidden">
-    <thead><tr class="bg-gray-50 text-gray-500">
-      <th class="px-4 py-3 text-right font-semibold">المورد</th>
-      <th class="px-4 py-3 text-right font-semibold">الوصف</th>
-      <th class="px-4 py-3 text-right font-semibold">التاريخ</th>
-      <th class="px-4 py-3 text-right font-semibold">الإجمالي</th>
-      <th class="px-4 py-3 text-right font-semibold">المدفوع</th>
-      <th class="px-4 py-3 text-right font-semibold">المتبقي</th>
-      <th class="px-4 py-3 text-right font-semibold">الحالة</th>
-      <th class="px-4 py-3 text-right font-semibold">إجراءات</th>
-    </tr></thead><tbody>
-    ${list.map(p=>{
-      const pr = purchaseRemaining(p);
-      const pp = purchasePaidTotal(p);
-      const st = purchaseStatus(p);
-      return `<tr class="border-t hover:bg-amber-50 transition">
-        <td class="px-4 py-3 font-semibold">${supplierName(p.supplierId)}</td>
-        <td class="px-4 py-3 text-gray-600 max-w-xs truncate">${p.desc}</td>
-        <td class="px-4 py-3 text-gray-500">${fmtDate(p.date)}</td>
-        <td class="px-4 py-3 font-bold">${fmt(p.amount)}</td>
-        <td class="px-4 py-3 text-green-700 font-bold">${fmt(pp)}</td>
-        <td class="px-4 py-3 text-red-600 font-bold">${fmt(pr)}</td>
-        <td class="px-4 py-3">${statusBadge(st)}</td>
-        <td class="px-4 py-3">
-          <div class="flex gap-1.5">
-            <button onclick="openDetailModal('${p.id}')" class="text-xs bg-blue-100 hover:bg-blue-200 text-blue-700 px-2 py-1 rounded-lg font-bold transition">تفاصيل</button>
-            ${st!=='paid'?`<button onclick="openPayModal('${p.id}')" class="text-xs bg-green-100 hover:bg-green-200 text-green-700 px-2 py-1 rounded-lg font-bold transition">دفع</button>`:''}
-            <button onclick="confirmDelete('purchase','${p.id}')" class="text-xs bg-red-100 hover:bg-red-200 text-red-600 px-2 py-1 rounded-lg font-bold transition">حذف</button>
-          </div>
-        </td>
-      </tr>`;
-    }).join('')}
-    </tbody></table>`;
+  div.innerHTML = creditors.map(c=>{
+    const cDebts = debts.filter(d=>d.creditorId===c.id);
+    const totalD = cDebts.reduce((s,d)=>s+Number(d.totalAmount),0);
+    const totalP = cDebts.reduce((s,d)=>s+totalPaid(d.id),0);
+    return `<div class="bg-white rounded-2xl shadow p-5 hover:shadow-md transition">
+      <div class="flex justify-between items-start mb-3">
+        <div>
+          <h3 class="font-black text-slate-800 text-lg">${c.name}</h3>
+          ${c.phone?`<p class="text-sm text-gray-400">📞 ${c.phone}</p>`:''}
+          ${c.notes?`<p class="text-xs text-gray-400 mt-1">${c.notes}</p>`:''}
+        </div>
+        <button onclick="confirmDeleteCreditor('${c.id}')" class="text-red-300 hover:text-red-500 text-xl">🗑</button>
+      </div>
+      <div class="grid grid-cols-3 gap-2 text-center border-t pt-3">
+        <div><p class="text-xs text-gray-400">إجمالي</p><p class="font-bold text-slate-700 text-sm">${fmt(totalD)}</p></div>
+        <div><p class="text-xs text-gray-400">مدفوع</p><p class="font-bold text-green-600 text-sm">${fmt(totalP)}</p></div>
+        <div><p class="text-xs text-gray-400">متبقي</p><p class="font-bold text-red-600 text-sm">${fmt(totalD-totalP)}</p></div>
+      </div>
+    </div>`;
+  }).join('');
 }
 
-function openDetailModal(purId) {
-  const p = purchases.find(x=>x.id===purId);
-  if(!p) return;
-  const sup = suppliers.find(s=>s.id===p.supplierId);
-  const purPayments = payments.filter(x=>x.purchaseId===purId).sort((a,b)=>new Date(a.date)-new Date(b.date));
-  const pr = purchaseRemaining(p);
-  const pp = purchasePaidTotal(p);
-  const st = purchaseStatus(p);
-  let html = `
-    <div id="printArea">
-    <div class="grid grid-cols-2 gap-3 mb-4">
-      <div><p class="text-xs text-gray-400">المورد</p><p class="font-bold">${sup?sup.name:'—'}</p></div>
-      <div><p class="text-xs text-gray-400">تاريخ الشراء</p><p class="font-bold">${fmtDate(p.date)}</p></div>
-      <div><p class="text-xs text-gray-400">الوصف</p><p class="font-bold">${p.desc}</p></div>
-      <div><p class="text-xs text-gray-400">الحالة</p><p>${statusBadge(st)}</p></div>
+function confirmDeleteCreditor(id) {
+  document.getElementById('confirmMsg').textContent='حذف الدائن سيحذف جميع ديونه ودفعاته. هل أنت متأكد؟';
+  document.getElementById('confirmYes').onclick=()=>{ deleteCreditor(id); };
+  openModal('modalConfirm');
+}
+function deleteCreditor(id) {
+  const dIds = debts.filter(d=>d.creditorId===id).map(d=>d.id);
+  payments  = payments.filter(p=>!dIds.includes(p.debtId));
+  debts     = debts.filter(d=>d.creditorId!==id);
+  creditors = creditors.filter(c=>c.id!==id);
+  save(); closeModal('modalConfirm'); renderCreditors(); refreshCreditorSelect();
+}
+
+// ---------- DEBTS ----------
+function updatePreview() {
+  const total = parseFloat(document.getElementById('dt-total').value);
+  const inst  = parseFloat(document.getElementById('dt-inst').value);
+  const start = document.getElementById('dt-start').value;
+  const freq  = document.getElementById('dt-freq').value;
+  const cdays = parseInt(document.getElementById('dt-customdays').value)||0;
+  const prev  = document.getElementById('debtPreview');
+  if(!total||!inst||!start||(freq==='custom'&&!cdays)) { prev.classList.add('hidden'); return; }
+  const freqDays = freq==='custom'?cdays:parseInt(freq);
+  const count = Math.ceil(total/inst);
+  const endDate = new Date(start+'T00:00:00');
+  endDate.setDate(endDate.getDate()+(count-1)*freqDays);
+  const freqLabel = {7:'أسبوعي',14:'كل أسبوعين',30:'شهري'}[freq]||`كل ${freqDays} يوم`;
+  document.getElementById('previewText').innerHTML =
+    `📊 عدد الدفعات: <b>${count}</b> — تكرار: <b>${freqLabel}</b> — آخر دفعة: <b>${fmtDate(endDate.toISOString().split('T')[0])}</b>`;
+  prev.classList.remove('hidden');
+}
+
+function saveDebt() {
+  const creditorId = document.getElementById('dt-creditor').value;
+  const desc       = document.getElementById('dt-desc').value.trim();
+  const totalAmount= parseFloat(document.getElementById('dt-total').value);
+  const instAmount = parseFloat(document.getElementById('dt-inst').value);
+  const freq       = document.getElementById('dt-freq').value;
+  const customDays = parseInt(document.getElementById('dt-customdays').value)||0;
+  const startDate  = document.getElementById('dt-start').value;
+  if(!creditorId)          return alert('اختر الدائن');
+  if(!desc)                return alert('أدخل وصف الدين');
+  if(!totalAmount||totalAmount<=0) return alert('أدخل المبلغ الكلي');
+  if(!instAmount||instAmount<=0)   return alert('أدخل مبلغ الدفعة');
+  if(instAmount>totalAmount)       return alert('مبلغ الدفعة أكبر من المبلغ الكلي!');
+  if(freq==='custom'&&!customDays) return alert('أدخل عدد الأيام');
+  if(!startDate)           return alert('اختر تاريخ أول دفعة');
+  debts.push({ id:uid(), creditorId, desc, totalAmount, instAmount, freq, customDays, startDate });
+  save();
+  closeModal('modalDebt');
+  ['dt-desc','dt-total','dt-inst','dt-start','dt-customdays'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('dt-creditor').value='';
+  document.getElementById('dt-freq').value='7';
+  document.getElementById('customFreqDiv').classList.add('hidden');
+  document.getElementById('debtPreview').classList.add('hidden');
+  renderDebts(); renderAlerts();
+}
+
+function renderDebts() {
+  const div = document.getElementById('debtsList');
+  if(!debts.length) {
+    div.innerHTML='<div class="text-center py-12 text-gray-400"><div class="text-5xl mb-3">📋</div><p>لا توجد ديون مسجلة بعد</p></div>';
+    return;
+  }
+  div.innerHTML = debts.map(debt=>{
+    const sched = buildSchedule(debt);
+    const paid  = totalPaid(debt.id);
+    const rem   = Number(debt.totalAmount)-paid;
+    const paidCount = sched.filter(s=>isInstPaid(debt.id,s.idx)).length;
+    const overdueCount = sched.filter(s=>instStatus(debt.id,s)==='overdue').length;
+    const pct = Math.round((paid/Number(debt.totalAmount))*100);
+    const freqLabel = {7:'أسبوعي',14:'كل أسبوعين',30:'شهري'}[debt.freq]||`كل ${debt.customDays} يوم`;
+    const isComplete = rem<=0;
+    return `<div class="bg-white rounded-2xl shadow p-5 hover:shadow-md transition ${overdueCount?'border-r-4 border-red-400':''}">
+      <div class="flex items-start justify-between flex-wrap gap-2">
+        <div>
+          <div class="flex items-center gap-2 flex-wrap">
+            <h3 class="font-black text-slate-800 text-lg">${debt.desc}</h3>
+            ${isComplete?'<span class="bg-green-100 text-green-700 text-xs px-2 py-0.5 rounded-full font-bold">✓ مكتمل</span>':''}
+            ${overdueCount?`<span class="bg-red-100 text-red-700 text-xs px-2 py-0.5 rounded-full font-bold">⚠ ${overdueCount} متأخر</span>`:''}
+          </div>
+          <p class="text-gray-500 text-sm">الدائن: <b class="text-slate-700">${creditorName(debt.creditorId)}</b> — ${freqLabel} — دفعة ${fmt(debt.instAmount)} د.ع</p>
+        </div>
+        <div class="flex gap-2">
+          <button onclick="openDetailModal('${debt.id}')" class="bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm px-3 py-1.5 rounded-xl font-bold transition">تفاصيل</button>
+          <button onclick="confirmDeleteDebt('${debt.id}')" class="text-red-300 hover:text-red-500 text-xl">🗑</button>
+        </div>
+      </div>
+      <!-- Progress -->
+      <div class="mt-4">
+        <div class="flex justify-between text-xs text-gray-400 mb-1">
+          <span>مدفوع: <b class="text-green-600">${fmt(paid)}</b> د.ع</span>
+          <span>متبقي: <b class="text-red-600">${fmt(Math.max(0,rem))}</b> د.ع</span>
+          <span><b>${pct}%</b></span>
+        </div>
+        <div class="bg-gray-100 rounded-full h-3">
+          <div class="bg-gradient-to-l from-green-500 to-green-400 h-3 rounded-full transition-all" style="width:${pct}%"></div>
+        </div>
+        <div class="flex justify-between text-xs text-gray-400 mt-1">
+          <span>الإجمالي: <b>${fmt(debt.totalAmount)}</b> د.ع</span>
+          <span>${paidCount} / ${sched.length} دفعة</span>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function confirmDeleteDebt(id) {
+  document.getElementById('confirmMsg').textContent='حذف الدين سيحذف جميع دفعاته المسجلة. هل أنت متأكد؟';
+  document.getElementById('confirmYes').onclick=()=>{ deleteDebt(id); };
+  openModal('modalConfirm');
+}
+function deleteDebt(id) {
+  payments = payments.filter(p=>p.debtId!==id);
+  debts    = debts.filter(d=>d.id!==id);
+  save(); closeModal('modalConfirm'); renderDebts(); renderDashboard();
+}
+
+// ---------- DETAIL MODAL ----------
+function openDetailModal(debtId) {
+  const debt = debts.find(d=>d.id===debtId);
+  if(!debt) return;
+  const sched = buildSchedule(debt);
+  const paid  = totalPaid(debtId);
+  const rem   = Math.max(0, Number(debt.totalAmount)-paid);
+  const pct   = Math.round((paid/Number(debt.totalAmount))*100);
+  const freqLabel = {7:'أسبوعي',14:'كل أسبوعين',30:'شهري'}[debt.freq]||`كل ${debt.customDays} يوم`;
+  const pastPayments = payments.filter(p=>p.debtId===debtId).sort((a,b)=>new Date(a.date)-new Date(b.date));
+
+  document.getElementById('detailTitle').textContent = `${debt.desc} — ${creditorName(debt.creditorId)}`;
+
+  let html = `<div id="printArea">
+  <!-- Summary -->
+  <div class="grid grid-cols-3 gap-3 mb-5">
+    <div class="bg-slate-50 rounded-xl p-3 text-center">
+      <p class="text-xs text-gray-400">الإجمالي</p>
+      <p class="font-black text-slate-700">${fmt(debt.totalAmount)} د.ع</p>
     </div>
-    <div class="grid grid-cols-3 gap-3 mb-5">
-      <div class="bg-amber-50 rounded-xl p-3 text-center"><p class="text-xs text-gray-400">الإجمالي</p><p class="font-black text-amber-700">${fmt(p.amount)}</p></div>
-      <div class="bg-green-50 rounded-xl p-3 text-center"><p class="text-xs text-gray-400">مدفوع</p><p class="font-black text-green-700">${fmt(pp)}</p></div>
-      <div class="bg-red-50 rounded-xl p-3 text-center"><p class="text-xs text-gray-400">متبقي</p><p class="font-black text-red-700">${fmt(pr)}</p></div>
+    <div class="bg-green-50 rounded-xl p-3 text-center">
+      <p class="text-xs text-gray-400">المدفوع</p>
+      <p class="font-black text-green-700">${fmt(paid)} د.ع</p>
     </div>
-    ${p.initialPaid>0?`<div class="bg-blue-50 rounded-xl p-3 mb-3 text-sm"><span class="font-bold text-blue-700">دفع أولي عند الشراء: </span>${fmt(p.initialPaid)}</div>`:''}
-    <h4 class="font-bold text-gray-700 mb-2">سجل الدفعات</h4>
-    ${purPayments.length ? `<div class="space-y-2">` + purPayments.map((pay,i)=>`<div class="border rounded-xl p-3 flex justify-between items-center">
+    <div class="bg-red-50 rounded-xl p-3 text-center">
+      <p class="text-xs text-gray-400">المتبقي</p>
+      <p class="font-black text-red-700">${fmt(rem)} د.ع</p>
+    </div>
+  </div>
+  <div class="bg-gray-50 rounded-xl p-3 mb-5 text-sm text-gray-600">
+    <div class="flex justify-between items-center mb-2">
+      <span>نسبة الإنجاز: <b>${pct}%</b></span>
+      <span>${freqLabel} — دفعة ${fmt(debt.instAmount)} د.ع</span>
+    </div>
+    <div class="bg-gray-200 rounded-full h-3">
+      <div class="bg-gradient-to-l from-green-500 to-green-400 h-3 rounded-full" style="width:${pct}%"></div>
+    </div>
+  </div>
+
+  <!-- Past Payments -->
+  <h4 class="font-black text-slate-700 mb-2">✅ الدفعات المسددة (${pastPayments.length})</h4>
+  ${pastPayments.length ? `<div class="space-y-2 mb-5">` + pastPayments.map((p,i)=>{
+    const inst = sched.find(s=>s.idx===p.instIdx);
+    return `<div class="flex items-center justify-between bg-green-50 border border-green-100 rounded-xl px-4 py-2.5">
       <div>
-        <p class="font-semibold text-sm">دفعة #${i+1}</p>
-        <p class="text-xs text-gray-400">${fmtDate(pay.date)}${pay.note?' — '+pay.note:''}</p>
+        <p class="font-semibold text-sm text-green-800">دفعة #${i+1}${inst?` (موعدها: ${fmtDate(inst.dueDate)})`:''}  </p>
+        <p class="text-xs text-gray-400">تم الدفع: ${fmtDate(p.date)}${p.note?' — '+p.note:''}</p>
       </div>
       <div class="flex items-center gap-2">
-        <span class="font-black text-green-600">${fmt(pay.amount)}</span>
-        <button onclick="confirmDelete('payment','${pay.id}')" class="text-red-300 hover:text-red-500 text-sm transition">🗑</button>
+        <span class="font-black text-green-700">${fmt(p.amount)} د.ع</span>
+        <button onclick="confirmDeletePayment('${p.id}')" class="text-red-300 hover:text-red-500 text-sm no-print">🗑</button>
       </div>
-    </div>`).join('') + '</div>'
-    : '<p class="text-gray-400 text-sm text-center py-3">لا توجد دفعات مسجلة بعد</p>'}
-    ${p.notes?`<div class="mt-3 bg-gray-50 rounded-xl p-3 text-sm text-gray-500"><span class="font-semibold">ملاحظات: </span>${p.notes}</div>`:''}
     </div>`;
+  }).join('') + '</div>'
+  : '<p class="text-gray-400 text-sm text-center py-3 mb-5">لا توجد دفعات مسددة بعد</p>'}
+
+  <!-- Schedule -->
+  <h4 class="font-black text-slate-700 mb-2">📅 جدول جميع الدفعات</h4>
+  <div class="space-y-2">
+  ${sched.map(inst=>{
+    const st   = instStatus(debtId, inst);
+    const pay  = getInstPayment(debtId, inst.idx)[0];
+    const d    = daysDiff(inst.dueDate);
+    const badges = {
+      paid:    'bg-green-100 text-green-700 border border-green-200',
+      overdue: 'bg-red-100 text-red-700 border border-red-200',
+      soon:    'bg-amber-100 text-amber-700 border border-amber-200',
+      upcoming:'bg-gray-50 text-gray-600 border border-gray-200'
+    };
+    const labels = { paid:'✓ مسدد', overdue:'⚠ متأخر', soon:`⏰ بعد ${d} يوم`, upcoming:`📅 ${fmtDate(inst.dueDate)}` };
+    return `<div class="flex items-center justify-between ${badges[st]} rounded-xl px-4 py-2.5">
+      <div class="flex-1 min-w-0">
+        <p class="font-semibold text-sm">دفعة ${inst.idx+1} — ${fmt(inst.amount)} د.ع</p>
+        <p class="text-xs opacity-70">موعد الاستحقاق: ${fmtDate(inst.dueDate)}${pay?' | دُفع: '+fmtDate(pay.date):''}</p>
+      </div>
+      <div class="flex items-center gap-2 shrink-0">
+        <span class="text-xs font-bold">${labels[st]}</span>
+        ${st!=='paid'?`<button onclick="openPayModal('${debtId}',${inst.idx})" class="text-xs bg-white border border-current px-2 py-0.5 rounded-lg font-bold hover:opacity-80 transition no-print">تسديد</button>`:''}
+      </div>
+    </div>`;
+  }).join('')}
+  </div>
+  </div>`;
+
   document.getElementById('detailContent').innerHTML = html;
   openModal('modalDetail');
 }
 
 function printDetail() {
   const content = document.getElementById('printArea').innerHTML;
-  const win = window.open('','','width=800,height=600');
-  win.document.write(`<html dir="rtl"><head><meta charset="UTF-8">
-    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
-    <style>*{font-family:Cairo,sans-serif;} body{padding:30px;} table{width:100%;} </style>
-    </head><body>${content}</body></html>`);
+  const title   = document.getElementById('detailTitle').textContent;
+  const win = window.open('','','width=900,height=700');
+  win.document.write(`<!DOCTYPE html><html dir="rtl"><head><meta charset="UTF-8">
+    <title>${title}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet">
+    <style>
+      *{font-family:Cairo,sans-serif;box-sizing:border-box}
+      body{padding:30px;font-size:14px}
+      .bg-green-50{background:#f0fdf4}.bg-red-50{background:#fef2f2}.bg-gray-50{background:#f9fafb}
+      .bg-slate-50{background:#f8fafc}.bg-amber-100{background:#fef9c3}
+      .text-green-700{color:#15803d}.text-red-700{color:#b91c1c}.text-slate-700{color:#334155}
+      .text-gray-400{color:#9ca3af}.text-xs{font-size:11px}.text-sm{font-size:13px}
+      .font-black{font-weight:900}.font-bold{font-weight:700}.font-semibold{font-weight:600}
+      .rounded-xl{border-radius:12px}.px-4{padding-left:16px;padding-right:16px}
+      .py-3{padding-top:12px;padding-bottom:12px}.py-2\\.5{padding-top:10px;padding-bottom:10px}
+      .mb-2{margin-bottom:8px}.mb-5{margin-bottom:20px}.space-y-2>*+*{margin-top:8px}
+      .grid{display:grid}.grid-cols-3{grid-template-columns:repeat(3,1fr)}.gap-3{gap:12px}
+      .flex{display:flex}.justify-between{justify-content:space-between}.items-center{align-items:center}
+      .no-print{display:none}
+      h4{margin:16px 0 8px}
+      @media print{.no-print{display:none}}
+    </style>
+    </head><body>
+    <h2 style="text-align:center;margin-bottom:20px">${title}</h2>
+    ${content}
+    <p style="text-align:center;color:#9ca3af;font-size:11px;margin-top:30px">تاريخ الطباعة: ${new Date().toLocaleDateString('ar-IQ',{year:'numeric',month:'long',day:'numeric'})}</p>
+    </body></html>`);
   win.document.close(); win.focus(); win.print(); win.close();
 }
 
-// ===================== PAYMENTS =====================
-function openPayModal(purId) {
-  const p = purchases.find(x=>x.id===purId);
-  if(!p) return;
-  const rem = purchaseRemaining(p);
-  document.getElementById('pay-purchaseId').value = purId;
+// ---------- PAYMENTS ----------
+function openPayModal(debtId, instIdx) {
+  const debt = debts.find(d=>d.id===debtId);
+  const sched = buildSchedule(debt);
+  const inst  = sched[instIdx];
+  const paid  = totalPaid(debtId);
+  const rem   = Math.max(0, Number(debt.totalAmount)-paid);
+  document.getElementById('pay-debtId').value  = debtId;
+  document.getElementById('pay-instIdx').value = instIdx;
   document.getElementById('payInfo').innerHTML = `
-    <p class="font-bold">${supplierName(p.supplierId)} — ${p.desc}</p>
-    <p class="text-xs mt-1">إجمالي: <b>${fmt(p.amount)}</b> | مدفوع: <b>${fmt(purchasePaidTotal(p))}</b> | <span class="text-red-700 font-bold">متبقي: ${fmt(rem)}</span></p>`;
-  document.getElementById('pay-amount').value = '';
-  document.getElementById('pay-amount').max = rem;
-  document.getElementById('pay-date').value = new Date().toISOString().split('T')[0];
-  document.getElementById('pay-note').value = '';
-  closeModal('modalSupplierDetail');
+    <p class="font-bold text-slate-800">${creditorName(debt.creditorId)} — ${debt.desc}</p>
+    <p class="text-xs mt-1 text-gray-500">دفعة #${instIdx+1} — موعد: ${fmtDate(inst.dueDate)}</p>
+    <div class="flex gap-4 mt-2 text-xs">
+      <span>الكلي: <b>${fmt(debt.totalAmount)}</b> د.ع</span>
+      <span class="text-green-700">مدفوع: <b>${fmt(paid)}</b></span>
+      <span class="text-red-700">متبقي: <b>${fmt(rem)}</b></span>
+    </div>`;
+  document.getElementById('pay-amount').value = inst.amount;
+  document.getElementById('pay-date').value   = today();
+  document.getElementById('pay-note').value   = '';
+  closeModal('modalDetail');
   openModal('modalPay');
 }
 
 function savePayment() {
-  const purId = document.getElementById('pay-purchaseId').value;
-  const amount = parseFloat(document.getElementById('pay-amount').value);
-  const date   = document.getElementById('pay-date').value;
-  if (!amount||amount<=0) return alert('الرجاء إدخال مبلغ صحيح');
-  if (!date) return alert('الرجاء اختيار تاريخ الدفع');
-  const p = purchases.find(x=>x.id===purId);
-  if (!p) return;
-  const rem = purchaseRemaining(p);
-  if (amount > rem + 0.01) return alert(`المبلغ المدفوع (${fmt(amount)}) أكبر من المتبقي (${fmt(rem)})!`);
-  payments.push({
-    id: uid(), purchaseId: purId, supplierId: p.supplierId,
-    amount, date, note: document.getElementById('pay-note').value.trim()
-  });
-  persist();
+  const debtId  = document.getElementById('pay-debtId').value;
+  const instIdx = parseInt(document.getElementById('pay-instIdx').value);
+  const amount  = parseFloat(document.getElementById('pay-amount').value);
+  const date    = document.getElementById('pay-date').value;
+  if(!amount||amount<=0) return alert('أدخل المبلغ');
+  if(!date)              return alert('اختر تاريخ الدفع');
+  const debt = debts.find(d=>d.id===debtId);
+  const rem  = Math.max(0, Number(debt.totalAmount)-totalPaid(debtId));
+  if(amount>rem+0.01)    return alert(`المبلغ أكبر من المتبقي (${fmt(rem)} د.ع)!`);
+  if(isInstPaid(debtId,instIdx)) return alert('هذه الدفعة مسددة مسبقاً!');
+  payments.push({ id:uid(), debtId, instIdx, amount, date, note:document.getElementById('pay-note').value.trim() });
+  save();
   closeModal('modalPay');
-  renderPurchases();
-  renderDashboard();
+  renderDashboard(); renderDebts(); renderAlerts();
 }
 
-function renderPayments() {
-  const div = document.getElementById('paymentsList');
-  const list = payments.slice().sort((a,b)=>new Date(b.date)-new Date(a.date));
-  if (!list.length) {
-    div.innerHTML='<div class="text-center py-12 text-gray-400"><div class="text-5xl mb-3">💳</div><p>لا توجد مدفوعات بعد</p></div>';
-    return;
-  }
-  div.innerHTML = `<table class="w-full text-sm bg-white rounded-2xl shadow overflow-hidden">
-    <thead><tr class="bg-gray-50 text-gray-500">
-      <th class="px-4 py-3 text-right font-semibold">التاريخ</th>
-      <th class="px-4 py-3 text-right font-semibold">المورد</th>
-      <th class="px-4 py-3 text-right font-semibold">الشراء</th>
-      <th class="px-4 py-3 text-right font-semibold">المبلغ</th>
-      <th class="px-4 py-3 text-right font-semibold">ملاحظة</th>
-      <th class="px-4 py-3 text-right font-semibold">حذف</th>
-    </tr></thead><tbody>
-    ${list.map(pay=>{
-      const pur = purchases.find(x=>x.id===pay.purchaseId);
-      return `<tr class="border-t hover:bg-green-50 transition">
-        <td class="px-4 py-3 text-gray-500">${fmtDate(pay.date)}</td>
-        <td class="px-4 py-3 font-semibold">${supplierName(pay.supplierId)}</td>
-        <td class="px-4 py-3 text-gray-600">${pur?pur.desc:'—'}</td>
-        <td class="px-4 py-3 font-black text-green-700">${fmt(pay.amount)}</td>
-        <td class="px-4 py-3 text-gray-400 text-xs">${pay.note||'—'}</td>
-        <td class="px-4 py-3"><button onclick="confirmDelete('payment','${pay.id}')" class="text-red-300 hover:text-red-500 transition">🗑</button></td>
-      </tr>`;
-    }).join('')}
-    </tbody></table>`;
-}
-
-// ===================== DELETE =====================
-let _delFn = null;
-function confirmDelete(type, id) {
-  const msgs = { supplier:'حذف المورد سيحذف جميع مشترياته ودفعاته. هل أنت متأكد؟', purchase:'حذف الشراء سيحذف جميع دفعاته. هل أنت متأكد؟', payment:'هل تريد حذف هذه الدفعة؟' };
-  document.getElementById('confirmMsg').textContent = msgs[type];
-  _delFn = () => doDelete(type, id);
-  document.getElementById('confirmYes').onclick = () => { _delFn && _delFn(); };
+function confirmDeletePayment(id) {
+  document.getElementById('confirmMsg').textContent='هل تريد حذف هذه الدفعة؟';
+  document.getElementById('confirmYes').onclick=()=>{ deletePayment(id); };
   openModal('modalConfirm');
 }
-function doDelete(type, id) {
-  if (type==='supplier') {
-    const purIds = purchases.filter(p=>p.supplierId===id).map(p=>p.id);
-    purchases = purchases.filter(p=>p.supplierId!==id);
-    payments  = payments.filter(p=>!purIds.includes(p.purchaseId));
-    suppliers = suppliers.filter(s=>s.id!==id);
-  } else if (type==='purchase') {
-    payments  = payments.filter(p=>p.purchaseId!==id);
-    purchases = purchases.filter(p=>p.id!==id);
-  } else if (type==='payment') {
-    payments = payments.filter(p=>p.id!==id);
-  }
-  persist();
-  closeModal('modalConfirm');
-  closeModal('modalDetail');
-  closeModal('modalSupplierDetail');
-  renderSuppliers(); renderPurchases(); renderPayments(); renderDashboard();
+function deletePayment(id) {
+  const p = payments.find(x=>x.id===id);
+  payments = payments.filter(x=>x.id!==id);
+  save(); closeModal('modalConfirm'); closeModal('modalDetail');
+  if(p) openDetailModal(p.debtId);
+  renderDashboard(); renderDebts(); renderAlerts();
 }
-
-// ===================== EXPORT =====================
-function exportPayments() {
-  const BOM = '﻿';
-  const header = 'التاريخ,المورد,الشراء,المبلغ,ملاحظة\n';
-  const rows = payments.slice().sort((a,b)=>new Date(b.date)-new Date(a.date))
-    .map(pay=>{
-      const pur = purchases.find(x=>x.id===pay.purchaseId);
-      return [fmtDate(pay.date), supplierName(pay.supplierId), pur?pur.desc:'—', pay.amount, pay.note||''].join(',');
-    }).join('\n');
-  const blob = new Blob([BOM+header+rows], {type:'text/csv;charset=utf-8;'});
-  const a = document.createElement('a'); a.href=URL.createObjectURL(blob);
-  a.download = 'مدفوعات_المقهى.csv'; a.click();
-}
-
-// ===================== INIT =====================
-refreshSupplierSelects();
 </script>
 </body>
 </html>
