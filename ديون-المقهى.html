@@ -1,0 +1,777 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>نظام إدارة ديون المقهى</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet" />
+  <style>
+    * { font-family: 'Cairo', sans-serif; }
+    .fade-in { animation: fadeIn 0.3s ease-in-out; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+    .badge-unpaid  { background:#fee2e2; color:#dc2626; }
+    .badge-partial { background:#fef9c3; color:#b45309; }
+    .badge-paid    { background:#dcfce7; color:#16a34a; }
+    @media print { .no-print { display:none !important; } }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+
+<!-- ========== LOGIN ========== -->
+<div id="loginScreen" class="fixed inset-0 bg-gradient-to-br from-amber-800 to-amber-600 flex items-center justify-center z-50">
+  <div class="bg-white rounded-2xl shadow-2xl p-10 w-full max-w-sm text-center fade-in">
+    <div class="text-5xl mb-3">☕</div>
+    <h1 class="text-2xl font-black text-amber-800 mb-1">إدارة ديون المقهى</h1>
+    <p class="text-gray-400 text-sm mb-6">نظام متابعة مستحقات الموردين</p>
+    <input id="loginPass" type="password" placeholder="كلمة المرور" onkeydown="if(event.key==='Enter')login()"
+      class="w-full border border-gray-200 rounded-xl px-4 py-3 text-center text-lg mb-4 focus:outline-none focus:ring-2 focus:ring-amber-400" />
+    <button onclick="login()" class="w-full bg-amber-700 hover:bg-amber-800 text-white font-bold py-3 rounded-xl transition">دخول</button>
+    <p id="loginErr" class="text-red-500 text-sm mt-3 hidden">كلمة المرور غير صحيحة</p>
+  </div>
+</div>
+
+<!-- ========== MAIN APP ========== -->
+<div id="app" class="hidden">
+
+  <!-- Navbar -->
+  <nav class="bg-amber-800 text-white shadow-lg no-print">
+    <div class="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between flex-wrap gap-2">
+      <div class="flex items-center gap-2">
+        <span class="text-2xl">☕</span>
+        <span class="font-black text-lg">ديون المقهى</span>
+      </div>
+      <div class="flex flex-wrap gap-2 items-center">
+        <button onclick="openTab('dashboard')" id="tab-dashboard" class="nav-btn active-tab px-3 py-1.5 rounded-lg text-sm font-semibold transition">لوحة التحكم</button>
+        <button onclick="openTab('suppliers')" id="tab-suppliers" class="nav-btn px-3 py-1.5 rounded-lg text-sm font-semibold transition">الموردون</button>
+        <button onclick="openTab('purchases')" id="tab-purchases" class="nav-btn px-3 py-1.5 rounded-lg text-sm font-semibold transition">المشتريات</button>
+        <button onclick="openTab('payments')" id="tab-payments" class="nav-btn px-3 py-1.5 rounded-lg text-sm font-semibold transition">المدفوعات</button>
+        <button onclick="logout()" class="bg-amber-900 hover:bg-red-700 px-3 py-1.5 rounded-lg text-sm font-semibold transition">خروج</button>
+      </div>
+    </div>
+  </nav>
+  <style>
+    .nav-btn { color: rgba(255,255,255,0.75); }
+    .nav-btn:hover, .active-tab { color:#fff; background:rgba(255,255,255,0.2); }
+  </style>
+
+  <div class="max-w-7xl mx-auto px-4 py-6">
+
+    <!-- ===== DASHBOARD TAB ===== -->
+    <div id="tab-content-dashboard" class="fade-in">
+      <h2 class="text-xl font-black text-amber-900 mb-4">لوحة التحكم</h2>
+
+      <!-- KPI Cards -->
+      <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        <div class="bg-white rounded-2xl shadow p-4 border-r-4 border-amber-500">
+          <p class="text-xs text-gray-400 mb-1">إجمالي المشتريات</p>
+          <p id="kpi-total" class="text-2xl font-black text-amber-700">0</p>
+        </div>
+        <div class="bg-white rounded-2xl shadow p-4 border-r-4 border-red-400">
+          <p class="text-xs text-gray-400 mb-1">إجمالي الديون</p>
+          <p id="kpi-debt" class="text-2xl font-black text-red-600">0</p>
+        </div>
+        <div class="bg-white rounded-2xl shadow p-4 border-r-4 border-green-400">
+          <p class="text-xs text-gray-400 mb-1">إجمالي المدفوع</p>
+          <p id="kpi-paid" class="text-2xl font-black text-green-600">0</p>
+        </div>
+        <div class="bg-white rounded-2xl shadow p-4 border-r-4 border-blue-400">
+          <p class="text-xs text-gray-400 mb-1">المتبقي</p>
+          <p id="kpi-remaining" class="text-2xl font-black text-blue-700">0</p>
+        </div>
+      </div>
+
+      <div class="grid lg:grid-cols-2 gap-6">
+        <!-- Chart -->
+        <div class="bg-white rounded-2xl shadow p-5">
+          <h3 class="font-bold text-gray-700 mb-3">توزيع الديون</h3>
+          <div class="flex justify-center"><canvas id="debtChart" width="260" height="260"></canvas></div>
+        </div>
+        <!-- Supplier Debts Summary -->
+        <div class="bg-white rounded-2xl shadow p-5">
+          <h3 class="font-bold text-gray-700 mb-3">ديون الموردين</h3>
+          <div id="supplierSummary" class="space-y-3 max-h-64 overflow-y-auto"></div>
+        </div>
+      </div>
+
+      <!-- Recent Unpaid -->
+      <div class="bg-white rounded-2xl shadow p-5 mt-6">
+        <h3 class="font-bold text-gray-700 mb-3">مشتريات غير مسددة بالكامل</h3>
+        <div id="unpaidList" class="overflow-x-auto"></div>
+      </div>
+    </div>
+
+    <!-- ===== SUPPLIERS TAB ===== -->
+    <div id="tab-content-suppliers" class="hidden fade-in">
+      <div class="flex items-center justify-between mb-4 flex-wrap gap-2">
+        <h2 class="text-xl font-black text-amber-900">الموردون</h2>
+        <button onclick="openModal('modalSupplier')" class="bg-amber-700 hover:bg-amber-800 text-white px-4 py-2 rounded-xl font-bold text-sm transition">+ إضافة مورد</button>
+      </div>
+      <div id="suppliersList" class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+    </div>
+
+    <!-- ===== PURCHASES TAB ===== -->
+    <div id="tab-content-purchases" class="hidden fade-in">
+      <div class="flex items-center justify-between mb-4 flex-wrap gap-2">
+        <h2 class="text-xl font-black text-amber-900">المشتريات</h2>
+        <div class="flex gap-2 flex-wrap">
+          <select id="filterSupplier" onchange="renderPurchases()" class="border border-gray-200 rounded-xl px-3 py-2 text-sm">
+            <option value="">كل الموردين</option>
+          </select>
+          <select id="filterStatus" onchange="renderPurchases()" class="border border-gray-200 rounded-xl px-3 py-2 text-sm">
+            <option value="">كل الحالات</option>
+            <option value="unpaid">غير مسدد</option>
+            <option value="partial">مسدد جزئياً</option>
+            <option value="paid">مسدد بالكامل</option>
+          </select>
+          <button onclick="openModal('modalPurchase')" class="bg-amber-700 hover:bg-amber-800 text-white px-4 py-2 rounded-xl font-bold text-sm transition">+ إضافة شراء</button>
+        </div>
+      </div>
+      <div id="purchasesList" class="overflow-x-auto"></div>
+    </div>
+
+    <!-- ===== PAYMENTS TAB ===== -->
+    <div id="tab-content-payments" class="hidden fade-in">
+      <div class="flex items-center justify-between mb-4 flex-wrap gap-2">
+        <h2 class="text-xl font-black text-amber-900">سجل المدفوعات</h2>
+        <button onclick="exportPayments()" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-xl font-bold text-sm transition">تصدير Excel</button>
+      </div>
+      <div id="paymentsList" class="overflow-x-auto"></div>
+    </div>
+
+  </div><!-- /max-w-7xl -->
+</div><!-- /app -->
+
+<!-- ========== MODALS ========== -->
+
+<!-- Add Supplier Modal -->
+<div id="modalSupplier" class="fixed inset-0 bg-black/50 hidden z-40 flex items-center justify-center p-4">
+  <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md fade-in">
+    <div class="flex items-center justify-between p-5 border-b">
+      <h3 class="font-black text-amber-800">إضافة مورد جديد</h3>
+      <button onclick="closeModal('modalSupplier')" class="text-gray-400 hover:text-gray-600 text-xl">×</button>
+    </div>
+    <div class="p-5 space-y-4">
+      <div>
+        <label class="text-sm font-semibold text-gray-600">اسم المورد *</label>
+        <input id="sup-name" type="text" class="w-full border border-gray-200 rounded-xl px-4 py-2.5 mt-1 focus:outline-none focus:ring-2 focus:ring-amber-400" placeholder="مثال: مورد القهوة" />
+      </div>
+      <div>
+        <label class="text-sm font-semibold text-gray-600">رقم الهاتف</label>
+        <input id="sup-phone" type="text" class="w-full border border-gray-200 rounded-xl px-4 py-2.5 mt-1 focus:outline-none focus:ring-2 focus:ring-amber-400" placeholder="05xxxxxxxx" />
+      </div>
+      <div>
+        <label class="text-sm font-semibold text-gray-600">المواد التي يورّدها</label>
+        <input id="sup-goods" type="text" class="w-full border border-gray-200 rounded-xl px-4 py-2.5 mt-1 focus:outline-none focus:ring-2 focus:ring-amber-400" placeholder="مثال: قهوة، سكر، حليب" />
+      </div>
+      <div>
+        <label class="text-sm font-semibold text-gray-600">ملاحظات</label>
+        <textarea id="sup-notes" rows="2" class="w-full border border-gray-200 rounded-xl px-4 py-2.5 mt-1 focus:outline-none focus:ring-2 focus:ring-amber-400" placeholder="أي ملاحظات إضافية..."></textarea>
+      </div>
+    </div>
+    <div class="p-5 border-t flex gap-3">
+      <button onclick="saveSupplier()" class="flex-1 bg-amber-700 hover:bg-amber-800 text-white font-bold py-2.5 rounded-xl transition">حفظ</button>
+      <button onclick="closeModal('modalSupplier')" class="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold py-2.5 rounded-xl transition">إلغاء</button>
+    </div>
+  </div>
+</div>
+
+<!-- Add Purchase Modal -->
+<div id="modalPurchase" class="fixed inset-0 bg-black/50 hidden z-40 flex items-center justify-center p-4">
+  <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md fade-in">
+    <div class="flex items-center justify-between p-5 border-b">
+      <h3 class="font-black text-amber-800">تسجيل شراء جديد</h3>
+      <button onclick="closeModal('modalPurchase')" class="text-gray-400 hover:text-gray-600 text-xl">×</button>
+    </div>
+    <div class="p-5 space-y-4">
+      <div>
+        <label class="text-sm font-semibold text-gray-600">المورد *</label>
+        <select id="pur-supplier" class="w-full border border-gray-200 rounded-xl px-4 py-2.5 mt-1 focus:outline-none focus:ring-2 focus:ring-amber-400">
+          <option value="">-- اختر المورد --</option>
+        </select>
+      </div>
+      <div>
+        <label class="text-sm font-semibold text-gray-600">المبلغ الإجمالي *</label>
+        <input id="pur-amount" type="number" min="0" class="w-full border border-gray-200 rounded-xl px-4 py-2.5 mt-1 focus:outline-none focus:ring-2 focus:ring-amber-400" placeholder="0.00" />
+      </div>
+      <div>
+        <label class="text-sm font-semibold text-gray-600">المبلغ المدفوع فوراً</label>
+        <input id="pur-paid" type="number" min="0" value="0" class="w-full border border-gray-200 rounded-xl px-4 py-2.5 mt-1 focus:outline-none focus:ring-2 focus:ring-amber-400" placeholder="0.00" />
+      </div>
+      <div>
+        <label class="text-sm font-semibold text-gray-600">تاريخ الشراء *</label>
+        <input id="pur-date" type="date" class="w-full border border-gray-200 rounded-xl px-4 py-2.5 mt-1 focus:outline-none focus:ring-2 focus:ring-amber-400" />
+      </div>
+      <div>
+        <label class="text-sm font-semibold text-gray-600">البضاعة / الوصف *</label>
+        <input id="pur-desc" type="text" class="w-full border border-gray-200 rounded-xl px-4 py-2.5 mt-1 focus:outline-none focus:ring-2 focus:ring-amber-400" placeholder="مثال: 50 كغ قهوة، 20 ل حليب..." />
+      </div>
+      <div>
+        <label class="text-sm font-semibold text-gray-600">ملاحظات</label>
+        <textarea id="pur-notes" rows="2" class="w-full border border-gray-200 rounded-xl px-4 py-2.5 mt-1 focus:outline-none focus:ring-2 focus:ring-amber-400" placeholder="أي ملاحظات..."></textarea>
+      </div>
+    </div>
+    <div class="p-5 border-t flex gap-3">
+      <button onclick="savePurchase()" class="flex-1 bg-amber-700 hover:bg-amber-800 text-white font-bold py-2.5 rounded-xl transition">حفظ</button>
+      <button onclick="closeModal('modalPurchase')" class="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold py-2.5 rounded-xl transition">إلغاء</button>
+    </div>
+  </div>
+</div>
+
+<!-- Pay Modal -->
+<div id="modalPay" class="fixed inset-0 bg-black/50 hidden z-40 flex items-center justify-center p-4">
+  <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md fade-in">
+    <div class="flex items-center justify-between p-5 border-b">
+      <h3 class="font-black text-amber-800">تسجيل دفعة</h3>
+      <button onclick="closeModal('modalPay')" class="text-gray-400 hover:text-gray-600 text-xl">×</button>
+    </div>
+    <div class="p-5 space-y-4">
+      <div id="payInfo" class="bg-amber-50 rounded-xl p-3 text-sm text-amber-800"></div>
+      <input type="hidden" id="pay-purchaseId" />
+      <div>
+        <label class="text-sm font-semibold text-gray-600">المبلغ المدفوع *</label>
+        <input id="pay-amount" type="number" min="0" class="w-full border border-gray-200 rounded-xl px-4 py-2.5 mt-1 focus:outline-none focus:ring-2 focus:ring-amber-400" placeholder="0.00" />
+      </div>
+      <div>
+        <label class="text-sm font-semibold text-gray-600">تاريخ الدفع *</label>
+        <input id="pay-date" type="date" class="w-full border border-gray-200 rounded-xl px-4 py-2.5 mt-1 focus:outline-none focus:ring-2 focus:ring-amber-400" />
+      </div>
+      <div>
+        <label class="text-sm font-semibold text-gray-600">ملاحظة</label>
+        <input id="pay-note" type="text" class="w-full border border-gray-200 rounded-xl px-4 py-2.5 mt-1 focus:outline-none focus:ring-2 focus:ring-amber-400" placeholder="اختياري..." />
+      </div>
+    </div>
+    <div class="p-5 border-t flex gap-3">
+      <button onclick="savePayment()" class="flex-1 bg-green-600 hover:bg-green-700 text-white font-bold py-2.5 rounded-xl transition">تأكيد الدفع</button>
+      <button onclick="closeModal('modalPay')" class="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold py-2.5 rounded-xl transition">إلغاء</button>
+    </div>
+  </div>
+</div>
+
+<!-- Purchase Detail Modal -->
+<div id="modalDetail" class="fixed inset-0 bg-black/50 hidden z-40 flex items-center justify-center p-4">
+  <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg fade-in">
+    <div class="flex items-center justify-between p-5 border-b">
+      <h3 class="font-black text-amber-800">تفاصيل الشراء</h3>
+      <div class="flex gap-2">
+        <button onclick="printDetail()" class="text-sm bg-amber-100 hover:bg-amber-200 text-amber-800 px-3 py-1 rounded-lg transition">طباعة</button>
+        <button onclick="closeModal('modalDetail')" class="text-gray-400 hover:text-gray-600 text-xl">×</button>
+      </div>
+    </div>
+    <div id="detailContent" class="p-5"></div>
+  </div>
+</div>
+
+<!-- Supplier Detail Modal -->
+<div id="modalSupplierDetail" class="fixed inset-0 bg-black/50 hidden z-40 flex items-center justify-center p-4">
+  <div class="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto fade-in">
+    <div class="flex items-center justify-between p-5 border-b">
+      <h3 id="supplierDetailTitle" class="font-black text-amber-800">تفاصيل المورد</h3>
+      <button onclick="closeModal('modalSupplierDetail')" class="text-gray-400 hover:text-gray-600 text-xl">×</button>
+    </div>
+    <div id="supplierDetailContent" class="p-5"></div>
+  </div>
+</div>
+
+<!-- Delete Confirm Modal -->
+<div id="modalConfirm" class="fixed inset-0 bg-black/50 hidden z-50 flex items-center justify-center p-4">
+  <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm fade-in text-center p-6">
+    <div class="text-4xl mb-3">⚠️</div>
+    <h3 class="font-black text-gray-800 mb-2">تأكيد الحذف</h3>
+    <p id="confirmMsg" class="text-gray-500 text-sm mb-5">هل أنت متأكد؟</p>
+    <div class="flex gap-3">
+      <button id="confirmYes" class="flex-1 bg-red-600 hover:bg-red-700 text-white font-bold py-2.5 rounded-xl transition">حذف</button>
+      <button onclick="closeModal('modalConfirm')" class="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold py-2.5 rounded-xl transition">إلغاء</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ===================== DATA LAYER =====================
+const DB = {
+  load(key, def=[]) { try { return JSON.parse(localStorage.getItem(key)) || def; } catch { return def; } },
+  save(key, val)    { localStorage.setItem(key, JSON.stringify(val)); }
+};
+
+let suppliers = DB.load('cafe_suppliers');
+let purchases = DB.load('cafe_purchases');
+let payments  = DB.load('cafe_payments');
+
+function persist() {
+  DB.save('cafe_suppliers', suppliers);
+  DB.save('cafe_purchases', purchases);
+  DB.save('cafe_payments',  payments);
+}
+
+function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2,6); }
+
+// ===================== AUTH =====================
+function login() {
+  const p = document.getElementById('loginPass').value;
+  if (p === 'admin') {
+    sessionStorage.setItem('cafe_auth','1');
+    document.getElementById('loginScreen').classList.add('hidden');
+    document.getElementById('app').classList.remove('hidden');
+    openTab('dashboard');
+  } else {
+    document.getElementById('loginErr').classList.remove('hidden');
+    document.getElementById('loginPass').value = '';
+  }
+}
+function logout() {
+  sessionStorage.removeItem('cafe_auth');
+  location.reload();
+}
+window.onload = () => {
+  if (sessionStorage.getItem('cafe_auth') === '1') {
+    document.getElementById('loginScreen').classList.add('hidden');
+    document.getElementById('app').classList.remove('hidden');
+    openTab('dashboard');
+  }
+};
+
+// ===================== TABS =====================
+const TABS = ['dashboard','suppliers','purchases','payments'];
+function openTab(t) {
+  TABS.forEach(id => {
+    document.getElementById('tab-content-'+id).classList.add('hidden');
+    document.getElementById('tab-'+id).classList.remove('active-tab');
+  });
+  document.getElementById('tab-content-'+t).classList.remove('hidden');
+  document.getElementById('tab-'+t).classList.add('active-tab');
+  if (t==='dashboard') renderDashboard();
+  if (t==='suppliers') renderSuppliers();
+  if (t==='purchases') renderPurchases();
+  if (t==='payments')  renderPayments();
+}
+
+// ===================== MODALS =====================
+function openModal(id) { document.getElementById(id).classList.remove('hidden'); }
+function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
+
+// ===================== HELPERS =====================
+function fmt(n) { return Number(n||0).toLocaleString('ar-SA', {minimumFractionDigits:2, maximumFractionDigits:2}); }
+function fmtDate(d) { if(!d) return '-'; const dt=new Date(d); return dt.toLocaleDateString('ar-SA'); }
+function supplierName(id) { const s=suppliers.find(x=>x.id===id); return s?s.name:'—'; }
+function purchaseRemaining(p) {
+  const paid = payments.filter(x=>x.purchaseId===p.id).reduce((s,x)=>s+Number(x.amount),0);
+  return Math.max(0, Number(p.amount) - Number(p.initialPaid||0) - paid);
+}
+function purchasePaidTotal(p) {
+  const paid = payments.filter(x=>x.purchaseId===p.id).reduce((s,x)=>s+Number(x.amount),0);
+  return Number(p.initialPaid||0) + paid;
+}
+function purchaseStatus(p) {
+  const rem = purchaseRemaining(p);
+  if (rem <= 0) return 'paid';
+  if (purchasePaidTotal(p) > 0) return 'partial';
+  return 'unpaid';
+}
+function statusBadge(s) {
+  const map = { paid:'مسدد', partial:'جزئي', unpaid:'غير مسدد' };
+  return `<span class="badge-${s} px-2 py-0.5 rounded-full text-xs font-bold">${map[s]}</span>`;
+}
+
+// ===================== DASHBOARD =====================
+let debtChartInst = null;
+function renderDashboard() {
+  const totalPurchases = purchases.reduce((s,p)=>s+Number(p.amount),0);
+  const totalPaid = purchases.reduce((s,p)=>s+purchasePaidTotal(p),0);
+  const totalRemaining = purchases.reduce((s,p)=>s+purchaseRemaining(p),0);
+
+  document.getElementById('kpi-total').textContent     = fmt(totalPurchases);
+  document.getElementById('kpi-debt').textContent      = fmt(totalRemaining);
+  document.getElementById('kpi-paid').textContent      = fmt(totalPaid);
+  document.getElementById('kpi-remaining').textContent = fmt(totalRemaining);
+
+  // Chart
+  const ctx = document.getElementById('debtChart').getContext('2d');
+  if (debtChartInst) debtChartInst.destroy();
+  debtChartInst = new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+      labels: ['مدفوع','متبقي'],
+      datasets:[{ data:[totalPaid, totalRemaining],
+        backgroundColor:['#16a34a','#dc2626'], borderWidth:0 }]
+    },
+    options:{ plugins:{ legend:{ position:'bottom' } }, cutout:'65%' }
+  });
+
+  // Supplier summary
+  const sDiv = document.getElementById('supplierSummary');
+  if (!suppliers.length) { sDiv.innerHTML='<p class="text-gray-400 text-sm text-center py-4">لا يوجد موردون بعد</p>'; return; }
+  sDiv.innerHTML = suppliers.map(sup => {
+    const supPurchases = purchases.filter(p=>p.supplierId===sup.id);
+    const total = supPurchases.reduce((s,p)=>s+Number(p.amount),0);
+    const rem   = supPurchases.reduce((s,p)=>s+purchaseRemaining(p),0);
+    const pct   = total>0 ? Math.round(((total-rem)/total)*100) : 100;
+    return `<div class="flex items-center gap-3">
+      <div class="flex-1">
+        <div class="flex justify-between text-sm mb-1">
+          <span class="font-semibold text-gray-700">${sup.name}</span>
+          <span class="text-red-600 font-bold">${fmt(rem)}</span>
+        </div>
+        <div class="bg-gray-100 rounded-full h-2">
+          <div class="bg-amber-500 h-2 rounded-full" style="width:${pct}%"></div>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+
+  // Unpaid list
+  const unpaid = purchases.filter(p=>purchaseStatus(p)!=='paid')
+    .sort((a,b)=>new Date(a.date)-new Date(b.date));
+  const uDiv = document.getElementById('unpaidList');
+  if (!unpaid.length) { uDiv.innerHTML='<p class="text-gray-400 text-sm text-center py-4">لا توجد ديون معلقة 🎉</p>'; return; }
+  uDiv.innerHTML = `<table class="w-full text-sm">
+    <thead><tr class="bg-gray-50 text-gray-500">
+      <th class="px-3 py-2 text-right font-semibold">المورد</th>
+      <th class="px-3 py-2 text-right font-semibold">الوصف</th>
+      <th class="px-3 py-2 text-right font-semibold">التاريخ</th>
+      <th class="px-3 py-2 text-right font-semibold">المبلغ</th>
+      <th class="px-3 py-2 text-right font-semibold">المتبقي</th>
+      <th class="px-3 py-2 text-right font-semibold">الحالة</th>
+    </tr></thead><tbody>
+    ${unpaid.map(p=>`<tr class="border-t hover:bg-amber-50">
+      <td class="px-3 py-2 font-semibold">${supplierName(p.supplierId)}</td>
+      <td class="px-3 py-2 text-gray-600">${p.desc}</td>
+      <td class="px-3 py-2 text-gray-500">${fmtDate(p.date)}</td>
+      <td class="px-3 py-2 font-bold">${fmt(p.amount)}</td>
+      <td class="px-3 py-2 font-bold text-red-600">${fmt(purchaseRemaining(p))}</td>
+      <td class="px-3 py-2">${statusBadge(purchaseStatus(p))}</td>
+    </tr>`).join('')}
+    </tbody></table>`;
+}
+
+// ===================== SUPPLIERS =====================
+function renderSuppliers() {
+  const div = document.getElementById('suppliersList');
+  if (!suppliers.length) {
+    div.innerHTML = '<div class="col-span-3 text-center py-12 text-gray-400"><div class="text-5xl mb-3">🏪</div><p>لا يوجد موردون بعد</p><p class="text-sm mt-1">أضف أول مورد من الزر أعلاه</p></div>';
+    return;
+  }
+  div.innerHTML = suppliers.map(sup => {
+    const supPurchases = purchases.filter(p=>p.supplierId===sup.id);
+    const total = supPurchases.reduce((s,p)=>s+Number(p.amount),0);
+    const rem   = supPurchases.reduce((s,p)=>s+purchaseRemaining(p),0);
+    return `<div class="bg-white rounded-2xl shadow p-5 hover:shadow-md transition">
+      <div class="flex items-start justify-between mb-3">
+        <div>
+          <h3 class="font-black text-gray-800">${sup.name}</h3>
+          ${sup.phone?`<p class="text-sm text-gray-400">${sup.phone}</p>`:''}
+          ${sup.goods?`<p class="text-xs text-amber-700 mt-1 bg-amber-50 rounded-lg px-2 py-0.5 inline-block">${sup.goods}</p>`:''}
+        </div>
+        <button onclick="confirmDelete('supplier','${sup.id}')" class="text-red-300 hover:text-red-500 transition text-lg">🗑</button>
+      </div>
+      <div class="flex gap-3 text-center border-t pt-3 mt-3">
+        <div class="flex-1"><p class="text-xs text-gray-400">إجمالي</p><p class="font-bold text-gray-700">${fmt(total)}</p></div>
+        <div class="flex-1"><p class="text-xs text-gray-400">متبقي</p><p class="font-bold text-red-600">${fmt(rem)}</p></div>
+        <div class="flex-1"><p class="text-xs text-gray-400">مشتريات</p><p class="font-bold text-gray-700">${supPurchases.length}</p></div>
+      </div>
+      <button onclick="openSupplierDetail('${sup.id}')" class="w-full mt-3 bg-amber-50 hover:bg-amber-100 text-amber-800 text-sm font-bold py-2 rounded-xl transition">عرض التفاصيل</button>
+    </div>`;
+  }).join('');
+}
+
+function saveSupplier() {
+  const name = document.getElementById('sup-name').value.trim();
+  if (!name) return alert('الرجاء إدخال اسم المورد');
+  suppliers.push({
+    id: uid(),
+    name,
+    phone: document.getElementById('sup-phone').value.trim(),
+    goods: document.getElementById('sup-goods').value.trim(),
+    notes: document.getElementById('sup-notes').value.trim()
+  });
+  persist();
+  closeModal('modalSupplier');
+  ['sup-name','sup-phone','sup-goods','sup-notes'].forEach(id=>document.getElementById(id).value='');
+  refreshSupplierSelects();
+  renderSuppliers();
+}
+
+function openSupplierDetail(supId) {
+  const sup = suppliers.find(s=>s.id===supId);
+  if(!sup) return;
+  document.getElementById('supplierDetailTitle').textContent = `تفاصيل: ${sup.name}`;
+  const supPurchases = purchases.filter(p=>p.supplierId===supId);
+  const total = supPurchases.reduce((s,p)=>s+Number(p.amount),0);
+  const rem   = supPurchases.reduce((s,p)=>s+purchaseRemaining(p),0);
+  const paid  = total - rem;
+  let html = `
+    <div class="grid grid-cols-3 gap-3 mb-5">
+      <div class="bg-amber-50 rounded-xl p-3 text-center"><p class="text-xs text-gray-400">إجمالي</p><p class="font-black text-amber-700">${fmt(total)}</p></div>
+      <div class="bg-green-50 rounded-xl p-3 text-center"><p class="text-xs text-gray-400">مدفوع</p><p class="font-black text-green-700">${fmt(paid)}</p></div>
+      <div class="bg-red-50 rounded-xl p-3 text-center"><p class="text-xs text-gray-400">متبقي</p><p class="font-black text-red-700">${fmt(rem)}</p></div>
+    </div>
+    <h4 class="font-bold text-gray-700 mb-2">المشتريات (${supPurchases.length})</h4>`;
+  if (!supPurchases.length) {
+    html += '<p class="text-gray-400 text-sm text-center py-4">لا توجد مشتريات بعد</p>';
+  } else {
+    html += `<div class="space-y-2">` + supPurchases.map(p => {
+      const pr = purchaseRemaining(p);
+      const st = purchaseStatus(p);
+      return `<div class="border rounded-xl p-3 flex items-center justify-between gap-2">
+        <div class="flex-1 min-w-0">
+          <p class="font-semibold text-sm truncate">${p.desc}</p>
+          <p class="text-xs text-gray-400">${fmtDate(p.date)} — إجمالي: ${fmt(p.amount)} — متبقي: <span class="text-red-600 font-bold">${fmt(pr)}</span></p>
+        </div>
+        <div class="flex items-center gap-2 shrink-0">
+          ${statusBadge(st)}
+          ${st!=='paid'?`<button onclick="openPayModal('${p.id}')" class="text-xs bg-green-100 hover:bg-green-200 text-green-700 px-2 py-1 rounded-lg font-bold transition">دفع</button>`:''}
+        </div>
+      </div>`;
+    }).join('') + '</div>';
+  }
+  document.getElementById('supplierDetailContent').innerHTML = html;
+  openModal('modalSupplierDetail');
+}
+
+// ===================== PURCHASES =====================
+function refreshSupplierSelects() {
+  ['pur-supplier','filterSupplier'].forEach(id => {
+    const sel = document.getElementById(id);
+    if (!sel) return;
+    const val = sel.value;
+    const opts = id==='filterSupplier' ? '<option value="">كل الموردين</option>' : '<option value="">-- اختر المورد --</option>';
+    sel.innerHTML = opts + suppliers.map(s=>`<option value="${s.id}">${s.name}</option>`).join('');
+    sel.value = val;
+  });
+}
+
+function savePurchase() {
+  const supId  = document.getElementById('pur-supplier').value;
+  const amount = parseFloat(document.getElementById('pur-amount').value);
+  const initPaid = parseFloat(document.getElementById('pur-paid').value||0);
+  const date   = document.getElementById('pur-date').value;
+  const desc   = document.getElementById('pur-desc').value.trim();
+  if (!supId)        return alert('الرجاء اختيار المورد');
+  if (!amount||amount<=0) return alert('الرجاء إدخال مبلغ صحيح');
+  if (initPaid>amount)   return alert('المبلغ المدفوع أكبر من المبلغ الإجمالي!');
+  if (!date)         return alert('الرجاء اختيار تاريخ الشراء');
+  if (!desc)         return alert('الرجاء إدخال وصف البضاعة');
+  purchases.push({
+    id: uid(), supplierId: supId, amount, initialPaid: initPaid||0,
+    date, desc, notes: document.getElementById('pur-notes').value.trim()
+  });
+  persist();
+  closeModal('modalPurchase');
+  ['pur-supplier','pur-amount','pur-date','pur-desc','pur-notes'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('pur-paid').value='0';
+  renderPurchases();
+}
+
+function renderPurchases() {
+  const filterSup = document.getElementById('filterSupplier').value;
+  const filterSt  = document.getElementById('filterStatus').value;
+  refreshSupplierSelects();
+
+  let list = purchases.slice().sort((a,b)=>new Date(b.date)-new Date(a.date));
+  if (filterSup) list = list.filter(p=>p.supplierId===filterSup);
+  if (filterSt)  list = list.filter(p=>purchaseStatus(p)===filterSt);
+
+  const div = document.getElementById('purchasesList');
+  if (!list.length) {
+    div.innerHTML = '<div class="text-center py-12 text-gray-400"><div class="text-5xl mb-3">🛒</div><p>لا توجد مشتريات</p></div>';
+    return;
+  }
+  div.innerHTML = `<table class="w-full text-sm bg-white rounded-2xl shadow overflow-hidden">
+    <thead><tr class="bg-gray-50 text-gray-500">
+      <th class="px-4 py-3 text-right font-semibold">المورد</th>
+      <th class="px-4 py-3 text-right font-semibold">الوصف</th>
+      <th class="px-4 py-3 text-right font-semibold">التاريخ</th>
+      <th class="px-4 py-3 text-right font-semibold">الإجمالي</th>
+      <th class="px-4 py-3 text-right font-semibold">المدفوع</th>
+      <th class="px-4 py-3 text-right font-semibold">المتبقي</th>
+      <th class="px-4 py-3 text-right font-semibold">الحالة</th>
+      <th class="px-4 py-3 text-right font-semibold">إجراءات</th>
+    </tr></thead><tbody>
+    ${list.map(p=>{
+      const pr = purchaseRemaining(p);
+      const pp = purchasePaidTotal(p);
+      const st = purchaseStatus(p);
+      return `<tr class="border-t hover:bg-amber-50 transition">
+        <td class="px-4 py-3 font-semibold">${supplierName(p.supplierId)}</td>
+        <td class="px-4 py-3 text-gray-600 max-w-xs truncate">${p.desc}</td>
+        <td class="px-4 py-3 text-gray-500">${fmtDate(p.date)}</td>
+        <td class="px-4 py-3 font-bold">${fmt(p.amount)}</td>
+        <td class="px-4 py-3 text-green-700 font-bold">${fmt(pp)}</td>
+        <td class="px-4 py-3 text-red-600 font-bold">${fmt(pr)}</td>
+        <td class="px-4 py-3">${statusBadge(st)}</td>
+        <td class="px-4 py-3">
+          <div class="flex gap-1.5">
+            <button onclick="openDetailModal('${p.id}')" class="text-xs bg-blue-100 hover:bg-blue-200 text-blue-700 px-2 py-1 rounded-lg font-bold transition">تفاصيل</button>
+            ${st!=='paid'?`<button onclick="openPayModal('${p.id}')" class="text-xs bg-green-100 hover:bg-green-200 text-green-700 px-2 py-1 rounded-lg font-bold transition">دفع</button>`:''}
+            <button onclick="confirmDelete('purchase','${p.id}')" class="text-xs bg-red-100 hover:bg-red-200 text-red-600 px-2 py-1 rounded-lg font-bold transition">حذف</button>
+          </div>
+        </td>
+      </tr>`;
+    }).join('')}
+    </tbody></table>`;
+}
+
+function openDetailModal(purId) {
+  const p = purchases.find(x=>x.id===purId);
+  if(!p) return;
+  const sup = suppliers.find(s=>s.id===p.supplierId);
+  const purPayments = payments.filter(x=>x.purchaseId===purId).sort((a,b)=>new Date(a.date)-new Date(b.date));
+  const pr = purchaseRemaining(p);
+  const pp = purchasePaidTotal(p);
+  const st = purchaseStatus(p);
+  let html = `
+    <div id="printArea">
+    <div class="grid grid-cols-2 gap-3 mb-4">
+      <div><p class="text-xs text-gray-400">المورد</p><p class="font-bold">${sup?sup.name:'—'}</p></div>
+      <div><p class="text-xs text-gray-400">تاريخ الشراء</p><p class="font-bold">${fmtDate(p.date)}</p></div>
+      <div><p class="text-xs text-gray-400">الوصف</p><p class="font-bold">${p.desc}</p></div>
+      <div><p class="text-xs text-gray-400">الحالة</p><p>${statusBadge(st)}</p></div>
+    </div>
+    <div class="grid grid-cols-3 gap-3 mb-5">
+      <div class="bg-amber-50 rounded-xl p-3 text-center"><p class="text-xs text-gray-400">الإجمالي</p><p class="font-black text-amber-700">${fmt(p.amount)}</p></div>
+      <div class="bg-green-50 rounded-xl p-3 text-center"><p class="text-xs text-gray-400">مدفوع</p><p class="font-black text-green-700">${fmt(pp)}</p></div>
+      <div class="bg-red-50 rounded-xl p-3 text-center"><p class="text-xs text-gray-400">متبقي</p><p class="font-black text-red-700">${fmt(pr)}</p></div>
+    </div>
+    ${p.initialPaid>0?`<div class="bg-blue-50 rounded-xl p-3 mb-3 text-sm"><span class="font-bold text-blue-700">دفع أولي عند الشراء: </span>${fmt(p.initialPaid)}</div>`:''}
+    <h4 class="font-bold text-gray-700 mb-2">سجل الدفعات</h4>
+    ${purPayments.length ? `<div class="space-y-2">` + purPayments.map((pay,i)=>`<div class="border rounded-xl p-3 flex justify-between items-center">
+      <div>
+        <p class="font-semibold text-sm">دفعة #${i+1}</p>
+        <p class="text-xs text-gray-400">${fmtDate(pay.date)}${pay.note?' — '+pay.note:''}</p>
+      </div>
+      <div class="flex items-center gap-2">
+        <span class="font-black text-green-600">${fmt(pay.amount)}</span>
+        <button onclick="confirmDelete('payment','${pay.id}')" class="text-red-300 hover:text-red-500 text-sm transition">🗑</button>
+      </div>
+    </div>`).join('') + '</div>'
+    : '<p class="text-gray-400 text-sm text-center py-3">لا توجد دفعات مسجلة بعد</p>'}
+    ${p.notes?`<div class="mt-3 bg-gray-50 rounded-xl p-3 text-sm text-gray-500"><span class="font-semibold">ملاحظات: </span>${p.notes}</div>`:''}
+    </div>`;
+  document.getElementById('detailContent').innerHTML = html;
+  openModal('modalDetail');
+}
+
+function printDetail() {
+  const content = document.getElementById('printArea').innerHTML;
+  const win = window.open('','','width=800,height=600');
+  win.document.write(`<html dir="rtl"><head><meta charset="UTF-8">
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>*{font-family:Cairo,sans-serif;} body{padding:30px;} table{width:100%;} </style>
+    </head><body>${content}</body></html>`);
+  win.document.close(); win.focus(); win.print(); win.close();
+}
+
+// ===================== PAYMENTS =====================
+function openPayModal(purId) {
+  const p = purchases.find(x=>x.id===purId);
+  if(!p) return;
+  const rem = purchaseRemaining(p);
+  document.getElementById('pay-purchaseId').value = purId;
+  document.getElementById('payInfo').innerHTML = `
+    <p class="font-bold">${supplierName(p.supplierId)} — ${p.desc}</p>
+    <p class="text-xs mt-1">إجمالي: <b>${fmt(p.amount)}</b> | مدفوع: <b>${fmt(purchasePaidTotal(p))}</b> | <span class="text-red-700 font-bold">متبقي: ${fmt(rem)}</span></p>`;
+  document.getElementById('pay-amount').value = '';
+  document.getElementById('pay-amount').max = rem;
+  document.getElementById('pay-date').value = new Date().toISOString().split('T')[0];
+  document.getElementById('pay-note').value = '';
+  closeModal('modalSupplierDetail');
+  openModal('modalPay');
+}
+
+function savePayment() {
+  const purId = document.getElementById('pay-purchaseId').value;
+  const amount = parseFloat(document.getElementById('pay-amount').value);
+  const date   = document.getElementById('pay-date').value;
+  if (!amount||amount<=0) return alert('الرجاء إدخال مبلغ صحيح');
+  if (!date) return alert('الرجاء اختيار تاريخ الدفع');
+  const p = purchases.find(x=>x.id===purId);
+  if (!p) return;
+  const rem = purchaseRemaining(p);
+  if (amount > rem + 0.01) return alert(`المبلغ المدفوع (${fmt(amount)}) أكبر من المتبقي (${fmt(rem)})!`);
+  payments.push({
+    id: uid(), purchaseId: purId, supplierId: p.supplierId,
+    amount, date, note: document.getElementById('pay-note').value.trim()
+  });
+  persist();
+  closeModal('modalPay');
+  renderPurchases();
+  renderDashboard();
+}
+
+function renderPayments() {
+  const div = document.getElementById('paymentsList');
+  const list = payments.slice().sort((a,b)=>new Date(b.date)-new Date(a.date));
+  if (!list.length) {
+    div.innerHTML='<div class="text-center py-12 text-gray-400"><div class="text-5xl mb-3">💳</div><p>لا توجد مدفوعات بعد</p></div>';
+    return;
+  }
+  div.innerHTML = `<table class="w-full text-sm bg-white rounded-2xl shadow overflow-hidden">
+    <thead><tr class="bg-gray-50 text-gray-500">
+      <th class="px-4 py-3 text-right font-semibold">التاريخ</th>
+      <th class="px-4 py-3 text-right font-semibold">المورد</th>
+      <th class="px-4 py-3 text-right font-semibold">الشراء</th>
+      <th class="px-4 py-3 text-right font-semibold">المبلغ</th>
+      <th class="px-4 py-3 text-right font-semibold">ملاحظة</th>
+      <th class="px-4 py-3 text-right font-semibold">حذف</th>
+    </tr></thead><tbody>
+    ${list.map(pay=>{
+      const pur = purchases.find(x=>x.id===pay.purchaseId);
+      return `<tr class="border-t hover:bg-green-50 transition">
+        <td class="px-4 py-3 text-gray-500">${fmtDate(pay.date)}</td>
+        <td class="px-4 py-3 font-semibold">${supplierName(pay.supplierId)}</td>
+        <td class="px-4 py-3 text-gray-600">${pur?pur.desc:'—'}</td>
+        <td class="px-4 py-3 font-black text-green-700">${fmt(pay.amount)}</td>
+        <td class="px-4 py-3 text-gray-400 text-xs">${pay.note||'—'}</td>
+        <td class="px-4 py-3"><button onclick="confirmDelete('payment','${pay.id}')" class="text-red-300 hover:text-red-500 transition">🗑</button></td>
+      </tr>`;
+    }).join('')}
+    </tbody></table>`;
+}
+
+// ===================== DELETE =====================
+let _delFn = null;
+function confirmDelete(type, id) {
+  const msgs = { supplier:'حذف المورد سيحذف جميع مشترياته ودفعاته. هل أنت متأكد؟', purchase:'حذف الشراء سيحذف جميع دفعاته. هل أنت متأكد؟', payment:'هل تريد حذف هذه الدفعة؟' };
+  document.getElementById('confirmMsg').textContent = msgs[type];
+  _delFn = () => doDelete(type, id);
+  document.getElementById('confirmYes').onclick = () => { _delFn && _delFn(); };
+  openModal('modalConfirm');
+}
+function doDelete(type, id) {
+  if (type==='supplier') {
+    const purIds = purchases.filter(p=>p.supplierId===id).map(p=>p.id);
+    purchases = purchases.filter(p=>p.supplierId!==id);
+    payments  = payments.filter(p=>!purIds.includes(p.purchaseId));
+    suppliers = suppliers.filter(s=>s.id!==id);
+  } else if (type==='purchase') {
+    payments  = payments.filter(p=>p.purchaseId!==id);
+    purchases = purchases.filter(p=>p.id!==id);
+  } else if (type==='payment') {
+    payments = payments.filter(p=>p.id!==id);
+  }
+  persist();
+  closeModal('modalConfirm');
+  closeModal('modalDetail');
+  closeModal('modalSupplierDetail');
+  renderSuppliers(); renderPurchases(); renderPayments(); renderDashboard();
+}
+
+// ===================== EXPORT =====================
+function exportPayments() {
+  const BOM = '﻿';
+  const header = 'التاريخ,المورد,الشراء,المبلغ,ملاحظة\n';
+  const rows = payments.slice().sort((a,b)=>new Date(b.date)-new Date(a.date))
+    .map(pay=>{
+      const pur = purchases.find(x=>x.id===pay.purchaseId);
+      return [fmtDate(pay.date), supplierName(pay.supplierId), pur?pur.desc:'—', pay.amount, pay.note||''].join(',');
+    }).join('\n');
+  const blob = new Blob([BOM+header+rows], {type:'text/csv;charset=utf-8;'});
+  const a = document.createElement('a'); a.href=URL.createObjectURL(blob);
+  a.download = 'مدفوعات_المقهى.csv'; a.click();
+}
+
+// ===================== INIT =====================
+refreshSupplierSelects();
+</script>
+</body>
+</html>
